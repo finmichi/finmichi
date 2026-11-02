@@ -169,6 +169,7 @@ pnpm test:ux-<suite>       # Playwright UI 回歸，例如 test:ux-finance、tes
 ## 文件索引
 
 - [專案分析與專案篩選](docs/project-analysis.md)
+- [刪除帳本與原廠重置](docs/data-reset.md)
 
 - 功能：`docs/phase1-*.md`、`docs/p2-*.md`、`docs/phase3-*.md`、`docs/p3-market-data.md`
 - UX：`docs/ux-*.md`

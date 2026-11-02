@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { reminderRoutes } from './reminder-routes.js';
+import { dataResetRoutes } from './data-reset-routes.js';
+import { dataResetService } from '@finmichi/core';
 import { depositRoutes } from './deposit-routes.js';
 import { dividendRoutes } from './dividend-routes.js';
 import { securitiesRoutes } from './securities-routes.js';
@@ -52,6 +54,7 @@ export interface Settings {
   draftMaxBaseAmount?: string;
   clientSecret?: string;
   subjectDiscovery?: boolean;
+  allowFactoryReset?: boolean;
   mockInternalUrl?: string;
   tlsKey?: string;
   tlsCert?: string;
@@ -79,6 +82,7 @@ export function settings(): Settings {
   if (!Number.isInteger(trustProxy) || trustProxy < 0 || trustProxy > 1)
     throw new Error('TRUST_PROXY must be 0 or 1');
   const config: Settings = {
+    allowFactoryReset: process.env.FINMICHI_ALLOW_FACTORY_RESET === 'true',
     subjectDiscovery:
       process.env.NODE_ENV === 'production' &&
       process.env.OIDC_SUBJECT_DISCOVERY === 'true',
@@ -170,6 +174,7 @@ export async function createApp(config: Settings, database?: Database) {
     timeWindow: '1 minute',
   });
   const sessions = sessionService(db, config.allowedSubjects);
+  const dataReset = dataResetService(db, config.allowFactoryReset === true);
   const authConfig = config.mockInternalUrl
     ? await oidc.discovery(
         new URL(config.issuer),
@@ -191,7 +196,14 @@ export async function createApp(config: Settings, database?: Database) {
       );
   const attempts = new Map<
     string,
-    { state: string; nonce: string; verifier: string; expires: number }
+    {
+      state: string;
+      nonce: string;
+      verifier: string;
+      expires: number;
+      expectedActor?: string;
+      returnTo: string;
+    }
   >();
   const cookieOptions = {
     httpOnly: true,
@@ -265,11 +277,28 @@ export async function createApp(config: Settings, database?: Database) {
   });
   app.get('/api/me', async (request) => ({
     user: request.actor,
+    safety: await dataReset.status(request.actor!.id, request.cookies.session),
   }));
   app.get(
     '/auth/login',
     { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
     async (_request, reply) => {
+      const query = _request.query as Record<string, unknown>;
+      const reauth = query.reauth === '1';
+      if (query.reauth !== undefined && !reauth)
+        return reply.code(400).send({ error: 'invalid_input' });
+      if (
+        query.return_to !== undefined &&
+        (!reauth ||
+          typeof query.return_to !== 'string' ||
+          !['/admin/ledgers', '/admin/system'].includes(query.return_to))
+      )
+        return reply.code(400).send({ error: 'invalid_input' });
+      const user = reauth
+        ? await sessions.authenticate(_request.cookies.session)
+        : null;
+      if (reauth && !user)
+        return reply.code(401).send({ error: 'unauthorized' });
       for (const [key, attempt] of attempts)
         if (attempt.expires < Date.now()) attempts.delete(key);
       if (attempts.size >= 1000)
@@ -283,6 +312,9 @@ export async function createApp(config: Settings, database?: Database) {
         nonce,
         verifier,
         expires: Date.now() + 600_000,
+        ...(user ? { expectedActor: user.id } : {}),
+        returnTo:
+          reauth && typeof query.return_to === 'string' ? query.return_to : '/',
       });
       reply
         .header('cache-control', 'no-store')
@@ -295,6 +327,7 @@ export async function createApp(config: Settings, database?: Database) {
           nonce,
           code_challenge: await oidc.calculatePKCECodeChallenge(verifier),
           code_challenge_method: 'S256',
+          ...(reauth ? { prompt: 'login' } : {}),
         }).href,
       );
     },
@@ -323,6 +356,9 @@ export async function createApp(config: Settings, database?: Database) {
         identity.iss,
         identity.sub,
         request.ip,
+        attempt.expectedActor
+          ? { expectedActor: attempt.expectedActor }
+          : undefined,
       );
       if (!token) {
         if (!subjectDiscovery)
@@ -359,8 +395,13 @@ export async function createApp(config: Settings, database?: Database) {
         ...cookieOptions,
         maxAge: SESSION_SECONDS,
       });
-      return reply.redirect('/');
-    } catch {
+      return reply.redirect(attempt.returnTo);
+    } catch (error) {
+      if (
+        error instanceof DomainError &&
+        error.code === 'reauth_identity_mismatch'
+      )
+        return reply.code(403).send({ error: error.code });
       await db`INSERT INTO audit_logs(action,outcome) VALUES ('login','error')`;
       request.log.warn({ event: 'oidc_failed' }, 'OIDC callback rejected');
       return reply.code(400).send({ error: 'authentication_failed' });
@@ -382,6 +423,7 @@ export async function createApp(config: Settings, database?: Database) {
   patRoutes(app, db);
   auditRoutes(app, db);
   backupRoutes(app, db, config.version);
+  dataResetRoutes(app, db, config.allowFactoryReset === true, config.version);
   reportRoutes(app, db);
   life2023Routes(app, db);
   catalogRoutes(app, db);

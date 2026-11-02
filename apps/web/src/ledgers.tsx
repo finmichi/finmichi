@@ -6,6 +6,7 @@ import { api, errorMessage } from './api';
 import { useWorkspace } from './design/workspace';
 import { todayTaipei } from './design/display-math';
 import { AdminEditor } from './design/admin-editor';
+import { DataReset } from './data-reset';
 import {
   EmptyState,
   ErrorState,
@@ -98,6 +99,7 @@ export function Ledgers() {
                   : '編輯帳本 ' + row.name}
               </Button>
             </Group>
+            <DataReset ledger={row} />
           </section>
         ))}
       </div>

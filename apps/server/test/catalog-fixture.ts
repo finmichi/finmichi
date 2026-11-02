@@ -4,7 +4,10 @@ import { once } from 'node:events';
 import { connect, migrate } from '@finmichi/db';
 import { sessionService } from '@finmichi/core';
 import { createApp } from '../src/app.js';
-export async function fixture(topic: string) {
+export async function fixture(
+  topic: string,
+  options: { allowFactoryReset?: boolean } = {},
+) {
   if (!process.env.TEST_DATABASE_URL)
     throw new Error('TEST_DATABASE_URL required');
   const db = connect(process.env.TEST_DATABASE_URL);
@@ -43,6 +46,7 @@ export async function fixture(topic: string) {
       trustProxy: 0,
       version: 'test',
       mockInternalUrl: `http://127.0.0.1:${address.port}`,
+      ...options,
     },
     db,
   );

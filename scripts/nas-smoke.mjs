@@ -462,7 +462,7 @@ try {
     'SELECT count(*) FROM ledgers; SELECT count(*) FROM transactions;',
   ).split('\n');
   const version = sql('SELECT max(name) FROM schema_migrations;');
-  assert.equal(version, '0029_project_reports.sql');
+  assert.equal(version, '0030_data_reset.sql');
   const backupEnv = {
     ...process.env,
     BACKUP_DIR: join(root, 'backup'),

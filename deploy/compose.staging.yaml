@@ -4,6 +4,8 @@ services:
   app:
     image: ghcr.io/finmichi/finmichi:${IMAGE_TAG:?Set IMAGE_TAG}
     env_file: .env.staging
+    environment:
+      FINMICHI_ALLOW_FACTORY_RESET: ${FINMICHI_ALLOW_FACTORY_RESET:-false}
     ports: ['127.0.0.1:8080:8080']
     read_only: true
     tmpfs: [/tmp]

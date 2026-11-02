@@ -74,7 +74,16 @@ it('requires a session for every registered API method and encoded equivalent', 
     ).values(),
   ];
   expect(protectedRoutes.length).toBeGreaterThan(0);
-  for (const url of ['/api/me', '/api/ledgers', '/api/ledgers/:ledger/budgets'])
+  for (const url of [
+    '/api/me',
+    '/api/ledgers',
+    '/api/ledgers/:ledger/budgets',
+    '/api/ledgers/:ledger/purge',
+    '/api/ledgers/:ledger/purge-preview',
+    '/api/factory-reset',
+    '/api/factory-reset-preview',
+    '/api/ledgers/:ledger/backup.json',
+  ])
     expect(protectedRoutes.some((route) => route.url === url)).toBe(true);
   for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'])
     expect(protectedRoutes.some((route) => route.method === method)).toBe(true);

@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { Button, Select, Stack, Text, TextInput } from '@mantine/core';
 import { api, errorMessage } from './api';
 const labels: Record<string, string> = {
+  'ledger.purge': '刪除帳本與全部資料',
+  'account.factory_reset': '原廠重置',
   'dividend.create': '新增股利',
   'dividend.update': '修改股利',
   'dividend.delete': '刪除股利',

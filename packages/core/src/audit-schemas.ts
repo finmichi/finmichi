@@ -8,6 +8,8 @@ export const auditActions = [
   'ledger.lock',
   'ledger.unlock',
   'ledger.delete',
+  'ledger.purge',
+  'account.factory_reset',
   'item.create',
   'item.update',
   'payees.create',

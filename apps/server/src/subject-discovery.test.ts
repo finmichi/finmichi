@@ -32,3 +32,11 @@ it('discovery never permits an empty subject allowlist or production mock transp
   vi.stubEnv('MOCK_OIDC_INTERNAL_URL', 'http://localhost:8081');
   expect(() => settings()).toThrow('development-only');
 });
+
+it('factory reset defaults off and only literal true enables it', () => {
+  environment();
+  for (const value of ['', 'false', '1', 'TRUE', 'true']) {
+    vi.stubEnv('FINMICHI_ALLOW_FACTORY_RESET', value);
+    expect(settings().allowFactoryReset).toBe(value === 'true');
+  }
+});

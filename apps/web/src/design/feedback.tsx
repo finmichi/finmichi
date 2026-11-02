@@ -110,6 +110,7 @@ export function ConfirmDialog({
   onConfirm,
   busy = false,
   closeLabel = '關閉確認',
+  disabled = false,
 }: {
   opened: boolean;
   title: string;
@@ -120,6 +121,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   busy?: boolean;
   closeLabel?: string;
+  disabled?: boolean;
 }) {
   return (
     <Modal
@@ -138,7 +140,12 @@ export function ConfirmDialog({
         <Button variant="default" disabled={busy} onClick={onCancel}>
           {cancelLabel}
         </Button>
-        <Button color="red" loading={busy} onClick={onConfirm}>
+        <Button
+          color="red"
+          loading={busy}
+          disabled={disabled}
+          onClick={onConfirm}
+        >
           {confirmLabel}
         </Button>
       </Group>

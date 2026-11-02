@@ -29,7 +29,7 @@
     "test:ux-entry": "node scripts/ux-entry-smoke.mjs",
     "test:ux-reports": "node scripts/ux-reports-smoke.mjs && node scripts/project-report-ui-smoke.mjs",
     "test:ux-recurring": "node scripts/ux-recurring-smoke.mjs",
-    "test:ux-admin": "node scripts/ux-admin-smoke.mjs",
+    "test:ux-admin": "node scripts/ux-admin-smoke.mjs && node scripts/data-reset-ui-smoke.mjs",
     "test:ux-budget": "node scripts/ux-budget-smoke.mjs",
     "test:ux-report-extensions": "node scripts/ux-report-extensions-smoke.mjs",
     "test:ux-finance": "node scripts/ux-finance-smoke.mjs",
