@@ -4,6 +4,7 @@ import { Button } from '@mantine/core';
 import { api, errorMessage } from '../api';
 import { useWorkspace } from './workspace';
 import { LoadingState, ErrorState } from './feedback';
+import { DataReset } from '../data-reset';
 export function SystemPage({
   subject,
   onLogout,
@@ -16,19 +17,22 @@ export function SystemPage({
     [date, setDate] = useState('—'),
     [error, setError] = useState(''),
     [retry, setRetry] = useState(0);
+  const [allowReset, setAllowReset] = useState(false);
   useEffect(() => {
     let live = true;
     void Promise.all([
       api<{ version: string }>('/api/health'),
+      api<{ safety: { factory_reset: boolean } }>('/api/me'),
       current
         ? api<{ items: { occurred_on: string }[] }>(
             `/api/ledgers/${current.id}/transactions?limit=1`,
           )
         : Promise.resolve({ items: [] }),
     ])
-      .then(([r, q]) => {
+      .then(([r, safety, q]) => {
         if (live) {
           setVersion(r.version);
+          setAllowReset(safety.safety.factory_reset);
           setDate(q.items[0]?.occurred_on ?? '尚無交易');
         }
       })
@@ -67,6 +71,7 @@ export function SystemPage({
         </dl>
       )}
       <Button onClick={onLogout}>登出</Button>
+      {allowReset && <DataReset />}
     </section>
   );
 }

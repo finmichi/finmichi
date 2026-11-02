@@ -40,9 +40,15 @@ async function record(
   >`SELECT id,item_id,amount::text,currency,exchange_rate::text,base_amount::text,entry_position FROM transaction_entries WHERE ledger_id=${ledger} AND transaction_id=${id} ORDER BY entry_position`;
   const [managed] =
     await sql`SELECT id AS security_trade_id,security_id FROM security_trades WHERE ledger_id=${ledger} AND transaction_id=${id}`;
+  const [dividend] =
+    await sql`SELECT id FROM dividends WHERE ledger_id=${ledger} AND transaction_id=${id}`;
+  const [deposit] =
+    await sql`SELECT deposit_id FROM deposit_postings WHERE ledger_id=${ledger} AND transaction_id=${id}`;
   return {
     ...row,
     entries,
+    ...(dividend ? { dividend_id: String(dividend.id) } : {}),
+    ...(deposit ? { deposit_id: String(deposit.deposit_id) } : {}),
     ...(managed
       ? {
           security_trade_id: String(managed.security_trade_id),

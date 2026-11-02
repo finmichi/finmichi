@@ -18,6 +18,7 @@ services:
     image: finmichi-dev:0.0.1
     env_file: .env
     environment:
+      FINMICHI_ALLOW_FACTORY_RESET: ${FINMICHI_ALLOW_FACTORY_RESET:-false}
       NODE_ENV: development
       TZ: Asia/Taipei
       DATABASE_URL_FILE: /run/secrets/database-url

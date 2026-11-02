@@ -107,11 +107,11 @@ function filtered(
 function details(sql: Transaction, q: QueryFilter) {
   return sql`SELECT f.id,f.ledger_id,f.occurred_on::text,
  to_char(f.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
- st.id AS security_trade_id,st.security_id,dp.deposit_id,
+ st.id AS security_trade_id,st.security_id,dp.deposit_id,dv.id AS dividend_id,
  f.kind,f.memo,f.invoice_no,f.payee_id,f.payee_name,f.project_id,f.project_name,f.transaction_amount::text,
  CASE WHEN ${q.item_id ?? null}::uuid IS NULL THEN NULL ELSE f.selected_net_amount::text END AS selected_net_amount,
  (SELECT jsonb_agg(jsonb_build_object('item_id',e.item_id,'item_name',e.item_name,'item_kind',e.item_kind,'amount',e.amount::text,'currency',e.currency,'exchange_rate',e.exchange_rate::text,'base_amount',e.base_amount::text,'entry_position',e.entry_position) ORDER BY e.entry_position) FROM all_entries e WHERE e.transaction_id=f.id) AS entries
- FROM filtered f LEFT JOIN security_trades st ON st.transaction_id=f.id AND st.ledger_id=f.ledger_id LEFT JOIN deposit_postings dp ON dp.transaction_id=f.id AND dp.ledger_id=f.ledger_id`;
+ FROM filtered f LEFT JOIN security_trades st ON st.transaction_id=f.id AND st.ledger_id=f.ledger_id LEFT JOIN deposit_postings dp ON dp.transaction_id=f.id AND dp.ledger_id=f.ledger_id LEFT JOIN dividends dv ON dv.transaction_id=f.id AND dv.ledger_id=f.ledger_id`;
 }
 async function totals(
   sql: Transaction,

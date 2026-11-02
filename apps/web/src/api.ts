@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { resetErrors } from './data-reset-messages';
 const messages: Record<string, string> = {
+  ...resetErrors,
   securities_require_twd_ledger: '股票功能目前僅支援本位幣為新臺幣的帳本',
   security_item_invalid: '證券科目必須為新臺幣資產，並開啟證券旗標。',
   security_account_required: '請選擇交割、投資費用與投資損益科目。',

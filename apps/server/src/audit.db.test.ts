@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { fixture } from '../test/catalog-fixture.js';
 import {
   sessionService,
+  dataResetService,
   securityService,
   dividendService,
   depositService,
@@ -484,11 +485,53 @@ it('every current action writes real audit, including bulk imports/restores and 
   }
   await dep.delete(f.actor, sl.id, setting.id);
   await reminderService(f.db).saveSettings(f.actor, f.ledger, {});
+  // Destructive actions use separate synthetic owners so the catalog fixture
+  // remains available for the following access-control tests.
+  for (const mode of ['purge', 'factory'] as const) {
+    const subject = 'audit-reset-' + mode;
+    const ss = sessionService(f.db, [subject]);
+    const raw = (await ss.login(
+      'https://audit-reset.synthetic.invalid',
+      subject,
+    ))!;
+    const actor = (await ss.authenticate(raw))!.id;
+    await f.db`UPDATE sessions SET authenticated_at=now(),reauthenticated=true WHERE user_id=${actor}`;
+    const ledger = await ledgers.create(actor, { name: '合成稽核刪除帳本' });
+    const service = dataResetService(f.db, true);
+    const preview = await service.preview(
+      actor,
+      raw,
+      mode,
+      mode === 'purge' ? ledger.id : undefined,
+    );
+    await backupService(f.db).download(actor, ledger.id, {
+      sessionToken: raw,
+      backupToken: preview.backup_token,
+    });
+    await service.execute(
+      actor,
+      raw,
+      mode,
+      {
+        backup_token: preview.backup_token,
+        confirmation: mode === 'purge' ? ledger.name : 'RESET',
+      },
+      mode === 'purge' ? ledger.id : undefined,
+    );
+  }
   const own =
     await f.db`SELECT DISTINCT action FROM audit_logs WHERE user_id=${f.actor}`;
   expect(own.map((r) => r.action).sort()).toEqual(
     auditActions
-      .filter((a) => a !== 'emoney.import' && a !== 'emoney.import_investments')
+      .filter(
+        (a) =>
+          ![
+            'emoney.import',
+            'emoney.import_investments',
+            'ledger.purge',
+            'account.factory_reset',
+          ].includes(a),
+      )
       .slice()
       .sort(),
   );
@@ -509,6 +552,8 @@ it('every current action writes real audit, including bulk imports/restores and 
         'subject_hash',
         'tool',
         'token_prefix',
+        'deleted_counts',
+        'duration_ms',
       ].sort(),
     );
     expect(auditActionSchema.safeParse(row.action).success).toBe(true);

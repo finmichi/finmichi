@@ -38,7 +38,8 @@ export function Dividends({ ledger }: { ledger: Ledger }) {
     from = query.get('date_from') ?? today.slice(0, 7) + '-01',
     to = query.get('date_to') ?? today,
     selected = query.get('security_id') ?? undefined,
-    base = `/api/ledgers/${ledger.id}`;
+    base = `/api/ledgers/${ledger.id}`,
+    linkedId = query.get('dividend_id');
   const [dateFrom, setFrom] = useState(from),
     [dateTo, setTo] = useState(to),
     [report, setReport] = useState<Report | null>(null),
@@ -47,6 +48,7 @@ export function Dividends({ ledger }: { ledger: Ledger }) {
     [securities, setSecurities] = useState<{ id: string; name: string }[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
+    [linkError, setLinkError] = useState(''),
     [version, setVersion] = useState(0),
     [edit, setEdit] = useState<DividendRecord | null | undefined>(undefined),
     [remove, setRemove] = useState<DividendRecord | null>(null),
@@ -89,6 +91,33 @@ export function Dividends({ ledger }: { ledger: Ledger }) {
       live = false;
     };
   }, [base, from, to, selected, version]);
+  useEffect(() => {
+    let live = true;
+    setLinkError('');
+    if (linkedId) {
+      if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(linkedId))
+        setLinkError('股利連結格式不正確。');
+      else
+        void api<DividendRecord>(base + '/dividends/' + linkedId)
+          .then((row) => {
+            if (live) setEdit(row);
+          })
+          .catch((e) => {
+            if (live) setLinkError(errorMessage(e));
+          });
+    }
+    return () => {
+      live = false;
+    };
+  }, [base, linkedId]);
+  function closeEdit() {
+    setEdit(undefined);
+    if (linkedId) {
+      const url = new URL(location, 'https://local.invalid');
+      url.searchParams.delete('dividend_id');
+      navigate(url.pathname + url.search, true);
+    }
+  }
   function generate() {
     navigate(
       '/investments?' +
@@ -261,6 +290,7 @@ export function Dividends({ ledger }: { ledger: Ledger }) {
           )}
         </>
       )}
+      {linkError && <ErrorState message={linkError} />}
       {edit !== undefined && (
         <DividendEntry
           key={edit?.id ?? 'new'}
@@ -271,9 +301,9 @@ export function Dividends({ ledger }: { ledger: Ledger }) {
           defaults={{}}
           initial={edit}
           security={selected}
-          onClose={() => setEdit(undefined)}
+          onClose={closeEdit}
           onSaved={() => {
-            setEdit(undefined);
+            closeEdit();
             setVersion((v) => v + 1);
           }}
         />

@@ -38,6 +38,8 @@ export interface Entry {
   entry_position: number;
 }
 export interface TransactionRecord {
+  dividend_id?: string;
+  deposit_id?: string;
   security_trade_id?: string;
   security_id?: string;
   id: string;

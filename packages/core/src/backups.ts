@@ -4,6 +4,11 @@ import type { Database } from '@finmichi/db';
 import { ownedLedger, valid, DomainError, mutation } from './catalog.js';
 import { idSchema } from './catalog-schemas.js';
 import {
+  deletionSession,
+  recordDeletionBackup,
+  type DeletionBackupContext,
+} from './data-reset.js';
+import {
   backupSchema,
   backupTableNames,
   BACKUP_MAX_BYTES,
@@ -61,11 +66,17 @@ export function backupFilename(name: string, at: string) {
 }
 export function backupService(db: Database, appVersion = '0.0.1') {
   return {
-    async download(actor: string, ledgerId: unknown): Promise<LedgerBackup> {
+    async download(
+      actor: string,
+      ledgerId: unknown,
+      deletion?: DeletionBackupContext,
+    ): Promise<LedgerBackup> {
       valid(idSchema, actor);
       return mutation(db, actor, 'backup.download', async (sql) => {
         const ledger = valid(idSchema, ledgerId);
         await sql.unsafe('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        if (deletion)
+          await deletionSession(sql, actor, deletion.sessionToken, true);
         await ownedLedger(sql, actor, ledger);
         const [l] =
           await sql`SELECT id,name,base_currency,locked_until::text,to_char(created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at FROM ledgers WHERE id=${ledger}`;
@@ -162,6 +173,14 @@ export function backupService(db: Database, appVersion = '0.0.1') {
         result.payloadSha256 = backupPayloadSha256(result.tables);
         if (Buffer.byteLength(JSON.stringify(result)) > BACKUP_MAX_BYTES)
           throw new DomainError('backup_too_large', 413);
+        if (deletion)
+          await recordDeletionBackup(
+            sql,
+            actor,
+            ledger,
+            deletion,
+            result.payloadSha256,
+          );
         return result;
       });
     },

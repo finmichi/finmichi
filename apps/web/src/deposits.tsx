@@ -28,7 +28,12 @@ import {
   LoadingState,
   notify,
 } from './design/feedback';
-import { guardNavigation, openPaymentEntry } from './design/location';
+import {
+  guardNavigation,
+  openPaymentEntry,
+  navigate,
+  useLocation,
+} from './design/location';
 const today = () =>
   new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei' }).format(
     new Date(),
@@ -47,10 +52,15 @@ type Preview = {
   creates_transaction: boolean;
 };
 export function Deposits({ ledger }: { ledger: Ledger }) {
-  const base = `/api/ledgers/${ledger.id}/deposits`;
+  const base = `/api/ledgers/${ledger.id}/deposits`,
+    location = useLocation(),
+    linkedId = new URL(location, 'https://local.invalid').searchParams.get(
+      'deposit_id',
+    );
   const [report, setReport] = useState<DepositReport | null>(null),
     [items, setItems] = useState<Item[]>([]),
     [error, setError] = useState(''),
+    [linkError, setLinkError] = useState(''),
     [loading, setLoading] = useState(true),
     [closed, setClosed] = useState(false);
   const [edit, setEdit] = useState<Row | null | undefined>(undefined),
@@ -82,6 +92,21 @@ export function Deposits({ ledger }: { ledger: Ledger }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  useEffect(() => {
+    setLinkError('');
+    if (!linkedId || !report) return;
+    const row = report.deposits.find((d) => d.id === linkedId);
+    if (row) setEdit(row);
+    else setLinkError('找不到這筆定存或您沒有存取權限。');
+  }, [linkedId, report]);
+  function closeEdit() {
+    setEdit(undefined);
+    if (linkedId) {
+      const url = new URL(location, 'https://local.invalid');
+      url.searchParams.delete('deposit_id');
+      navigate(url.pathname + url.search, true);
+    }
+  }
   if (loading) return <LoadingState label="載入定存" />;
   const rows =
     report?.deposits.filter((d) => closed || d.status === 'active') ?? [];
@@ -92,6 +117,7 @@ export function Deposits({ ledger }: { ledger: Ledger }) {
         <Button onClick={() => setEdit(null)}>新增定存</Button>
       </Group>
       {error && <ErrorState message={error} retry={() => void refresh()} />}
+      {linkError && <ErrorState message={linkError} />}
       {report && (
         <section className="deposit-totals" aria-label="定存合計">
           <div>
@@ -296,14 +322,14 @@ export function Deposits({ ledger }: { ledger: Ledger }) {
           initial={edit}
           items={items}
           baseCurrency={ledger.base_currency}
-          onClose={() => setEdit(undefined)}
+          onClose={closeEdit}
           onSave={async (d) => {
             await api(
               base + (edit ? '/' + edit.id : ''),
               edit ? 'PUT' : 'POST',
               d,
             );
-            setEdit(undefined);
+            closeEdit();
             notify('定存設定已儲存');
             await refresh();
           }}

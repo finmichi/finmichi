@@ -8,12 +8,18 @@ import {
   tokenHash,
   isAllowed,
 } from './index.js';
+import { DomainError } from './catalog.js';
 export function sessionService(
   db: Database,
   allowedSubjects: readonly string[],
 ) {
   return {
-    async login(issuer: string, subject: string, sourceIp?: string) {
+    async login(
+      issuer: string,
+      subject: string,
+      sourceIp?: string,
+      reauth?: { expectedActor: string },
+    ) {
       if (!isAllowed(subject, allowedSubjects)) {
         const ip = sourceIp && isIP(sourceIp) ? sourceIp : null;
         await db`INSERT INTO audit_logs(action,outcome,source_ip,subject_hash) VALUES ('login','denied',${ip},${tokenHash(subject)})`;
@@ -25,7 +31,9 @@ export function sessionService(
         const [user] =
           await sql`INSERT INTO users(oidc_issuer,oidc_subject) VALUES (${issuer},${subject}) ON CONFLICT (oidc_issuer,oidc_subject) DO UPDATE SET oidc_subject = EXCLUDED.oidc_subject RETURNING id`;
         if (!user) throw new Error('User creation failed');
-        await sql`INSERT INTO sessions(token_hash,user_id,expires_at) VALUES (${tokenHash(token)},${user.id},now()+${SESSION_SECONDS}*interval '1 second')`;
+        if (reauth && user.id !== reauth.expectedActor)
+          throw new DomainError('reauth_identity_mismatch', 403);
+        await sql`INSERT INTO sessions(token_hash,user_id,expires_at,authenticated_at,reauthenticated) VALUES (${tokenHash(token)},${user.id},now()+${SESSION_SECONDS}*interval '1 second',now(),${Boolean(reauth)})`;
         await sql`INSERT INTO audit_logs(user_id,action,outcome) VALUES (${user.id},'login','success')`;
       });
       return token;

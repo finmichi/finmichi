@@ -2526,3 +2526,24 @@ textarea {
   padding-block: 10px;
   cursor: pointer;
 }
+
+.data-reset-steps dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.data-reset-steps dd {
+  margin: 0;
+  white-space: nowrap;
+}
+.data-reset-steps section {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.data-reset-steps .mantine-Button-root {
+  min-height: 44px;
+  height: auto;
+}
+.data-reset-steps .mantine-Button-label {
+  white-space: normal;
+}

@@ -12,6 +12,7 @@ services:
     pull_policy: never
     image: ghcr.io/finmichi/finmichi:${IMAGE_TAG:?IMAGE_TAG required}
     environment:
+      FINMICHI_ALLOW_FACTORY_RESET: ${FINMICHI_ALLOW_FACTORY_RESET:-false}
       NODE_ENV: production
       TZ: Asia/Taipei
       APP_VERSION: ${IMAGE_TAG:?IMAGE_TAG required}
