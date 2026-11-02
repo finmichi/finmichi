@@ -650,6 +650,13 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
               placeholder="搜尋摘要、發票號碼"
               value={draft.keyword}
               onChange={(e) => change('keyword', e.currentTarget.value)}
+              onKeyDown={(e) => {
+                // A second common filter disables native implicit form submission on mobile.
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  apply();
+                }
+              }}
               maxLength={200}
             />
             {!mobile && (

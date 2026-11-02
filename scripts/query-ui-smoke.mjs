@@ -203,12 +203,13 @@ try {
     page.getByRole('button', { name: /^篩選與工具/ }).click();
   const closeTools = () =>
     page.getByRole('button', { name: '關閉篩選與工具', exact: true }).click();
+  // Project is a common filter outside the mobile tools drawer.
+  await select('篩選專案', '合成專案');
   await openTools();
   await field('起始日期').fill('2026-10-01');
   await field('結束日期').fill('2026-10-09');
   await field('最小交易金額（本位幣）').fill('100');
   await field('最大交易金額（本位幣）').fill('1000');
-  await select('篩選專案', '合成專案');
   await select('篩選收付人', '合成收付人');
   await select('交易類別', '支出');
   await field('篩選科目（含子科目）').click();
@@ -222,6 +223,8 @@ try {
   await field('關鍵字').fill('abc');
   await field('關鍵字').press('Enter');
   await page.getByText(/^共 2 筆/).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('project_id'), project.id);
+  assert.equal(new URL(page.url()).searchParams.get('keyword'), 'abc');
   await openTools();
   await select('每次載入筆數', '1');
   await closeTools();
@@ -299,6 +302,15 @@ try {
   console.log(
     '390px query: AND filters / descendant account / cursor append/no duplicates / multiple entries / summaries / no overflow PASS',
   );
+} catch (error) {
+  if (browser) {
+    const page = browser.contexts()[0]?.pages()[0];
+    if (page) {
+      await page.screenshot({ path: output + '/failure.png', fullPage: true });
+      console.error('Synthetic query failure URL:', page.url());
+    }
+  }
+  throw error;
 } finally {
   if (browser) await browser.close();
   if (app) await app.close();
