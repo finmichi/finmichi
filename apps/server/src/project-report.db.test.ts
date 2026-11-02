@@ -196,3 +196,38 @@ it('rejects invalid ranges, booleans and unknown query fields', async () => {
         .statusCode,
     ).toBe(400);
 });
+
+it('rounds the exact rational once, including huge near-half values and negative refunds', async () => {
+  const reference = (amount: string, days: number) => {
+    const negative = amount.startsWith('-'),
+      [whole, decimal = ''] = (negative ? amount.slice(1) : amount).split('.');
+    const numerator = BigInt(whole! + decimal) * 100n,
+      denominator = 10n ** BigInt(decimal.length) * BigInt(days);
+    const q =
+      numerator / denominator +
+      (2n * (numerator % denominator) >= denominator ? 1n : 0n);
+    return (
+      (negative && q !== 0n ? '-' : '') +
+      q / 100n +
+      '.' +
+      String(q % 100n).padStart(2, '0')
+    );
+  };
+  for (const [amount, days, expected] of [
+    ['1220.00', 7, '174.29'],
+    ['0.01', 2, '0.01'],
+    ['-0.01', 2, '-0.01'],
+    ['3000000000000014999.990000', 3000000, '1000000000000.00'],
+    ['-3000000000000014999.990000', 3000000, '-1000000000000.00'],
+    ['3000000000000015000.000000', 3000000, '1000000000000.01'],
+    ['-3000000000000015000.000000', 3000000, '-1000000000000.01'],
+  ] as const) {
+    expect(reference(amount, days)).toBe(expected);
+    const [r] =
+      await f.db`SELECT report_money_average(${amount}::numeric,${days})::text amount`;
+    expect(r!.amount).toBe(expected);
+  }
+  const [empty] =
+    await f.db`SELECT report_money_average(1,0) a,report_money_average(null,2) b`;
+  expect(empty).toEqual({ a: null, b: null });
+});

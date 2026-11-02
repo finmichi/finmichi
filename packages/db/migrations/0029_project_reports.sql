@@ -114,6 +114,13 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER AS $$
  ) FROM owned o CROSS JOIN total t CROSS JOIN root_stats r
 $$;
 
+-- Round the rational once: ordinary numeric division can round first at large magnitudes.
+CREATE FUNCTION report_money_average(p_amount numeric,p_days integer)
+RETURNS numeric LANGUAGE sql IMMUTABLE STRICT SECURITY INVOKER AS $$
+ SELECT CASE WHEN p_days>0 THEN
+  round(sign(p_amount)*div(2*abs(p_amount)*100+p_days,2::numeric*p_days)*0.01,2)
+ END
+$$;
 CREATE FUNCTION report_projects(p_owner uuid,p_ledger uuid,p_from date,p_to date,p_archived boolean)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER AS $$
  WITH RECURSIVE owned AS (
@@ -155,7 +162,7 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER AS $$
    'income',round(coalesce(m.income,0),2)::text,'expense',round(coalesce(m.expense,0),2)::text,
    'net',round(coalesce(m.income,0)-coalesce(m.expense,0),2)::text,'transaction_count',coalesce(d.n,0),
    'first_on',d.first_on::text,'last_on',d.last_on::text,'days',coalesce(d.last_on-d.first_on+1,0),
-   'daily_average_expense',round(coalesce(m.expense,0)/nullif(d.last_on-d.first_on+1,0),2)::text,
+   'daily_average_expense',report_money_average(coalesce(m.expense,0),d.last_on-d.first_on+1)::text,
    'items',coalesce(t.data,'[]'::jsonb),
    'currencies',coalesce((SELECT jsonb_agg(jsonb_build_object('currency',c.currency,'original_expense',c.original_amount::text,'base_expense',round(c.base_amount,2)::text) ORDER BY c.currency) FROM currencies c WHERE c.project_id=p.id),'[]'::jsonb),
    'months',coalesce((SELECT jsonb_agg(jsonb_build_object('month',x.month,'income',round(x.income,2)::text,'expense',round(x.expense,2)::text,'net',round(x.income-x.expense,2)::text) ORDER BY x.month) FROM months x WHERE x.project_id=p.id),'[]'::jsonb)
