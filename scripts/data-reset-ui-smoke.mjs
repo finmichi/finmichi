@@ -155,6 +155,20 @@ try {
       .getByText('已完成重新驗證，僅在 5 分鐘內有效。', { exact: true })
       .waitFor();
     assert.equal(provider.prompts.at(-1), 'login');
+    // Simulate a concurrent browser renaming this ledger after the page loaded.
+    // Confirmation must use the newly previewed name, not stale workspace props.
+    const confirmationName =
+      index === 0 ? ledger.name + '（已更名）' : ledger.name;
+    if (index === 0) {
+      const renamed = await page.request.patch(
+        config.publicUrl + `/api/ledgers/${ledger.id}`,
+        {
+          headers: { origin: config.publicUrl },
+          data: { name: confirmationName },
+        },
+      );
+      assert.equal(renamed.status(), 200);
+    }
     await dialog
       .getByRole('button', { name: '預覽刪除範圍', exact: true })
       .click();
@@ -164,7 +178,9 @@ try {
       path: `${output}/${width}-${theme}-preview.png`,
       fullPage: true,
     });
-    const targets = mode === 'factory' ? [ledger, extra] : [ledger];
+    const renamedLedger = { ...ledger, name: confirmationName };
+    const targets =
+      mode === 'factory' ? [renamedLedger, extra] : [renamedLedger];
     for (const row of targets) {
       const pending = page.waitForEvent('download');
       await dialog
@@ -178,7 +194,8 @@ try {
       assert.equal(await confirm.isDisabled(), true);
     }
     const text = dialog.getByRole('textbox', {
-      name: '請逐字輸入「' + (mode === 'purge' ? ledger.name : 'RESET') + '」',
+      name:
+        '請逐字輸入「' + (mode === 'purge' ? confirmationName : 'RESET') + '」',
       exact: true,
     });
     await text.fill('錯誤確認');
@@ -189,7 +206,11 @@ try {
       })
       .check();
     assert.equal(await confirm.isDisabled(), true);
-    await text.fill(mode === 'purge' ? ledger.name : 'RESET');
+    if (index === 0) {
+      await text.fill(ledger.name);
+      assert.equal(await confirm.isDisabled(), true);
+    }
+    await text.fill(mode === 'purge' ? confirmationName : 'RESET');
     assert.equal(await confirm.isEnabled(), true);
     const overflow = await page.evaluate(
       () =>
@@ -254,6 +275,7 @@ try {
       external: 0,
       otherOwnerUnchanged: true,
       deletedLedgerTables: deletionLedgerTables.length,
+      concurrentRename: index === 0,
     });
     await context.close();
   }

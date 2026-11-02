@@ -57,12 +57,16 @@ export function DataReset({ ledger }: { ledger?: Ledger }) {
     !!safety.reauth_expires_at &&
     Date.parse(safety.reauth_expires_at) > now;
   const validPreview = !!preview && Date.parse(preview.expires_at) > now;
+  const confirmationName = ledger
+    ? (preview?.ledgers.find((row) => row.id === ledger.id)?.name ??
+      ledger.name)
+    : 'RESET';
   const ready =
     recent &&
     validPreview &&
     preview.ledgers.every((l) => downloaded.includes(l.id)) &&
     ack &&
-    confirmation === (ledger?.name ?? 'RESET');
+    confirmation === confirmationName;
   function open() {
     setSafety(null);
     setPreview(null);
@@ -166,7 +170,7 @@ export function DataReset({ ledger }: { ledger?: Ledger }) {
           <Alert color="red" role="alert">
             {resetText.irreversible}。
             {ledger
-              ? `將刪除「${ledger.name}」及全部所屬資料。`
+              ? `將刪除「${confirmationName}」及全部所屬資料。`
               : '將刪除您所有帳本及存取權杖。'}
             {resetText.backupNotice}
           </Alert>
@@ -247,7 +251,7 @@ export function DataReset({ ledger }: { ledger?: Ledger }) {
             <h3>4. 輸入確認文字 · {resetText.irreversible}</h3>
             <Text>{resetText.retained}</Text>
             <TextInput
-              label={'請逐字輸入「' + (ledger?.name ?? 'RESET') + '」'}
+              label={'請逐字輸入「' + confirmationName + '」'}
               value={confirmation}
               maxLength={200}
               disabled={busy}
