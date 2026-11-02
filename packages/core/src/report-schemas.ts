@@ -321,6 +321,8 @@ export interface ProjectReportItem {
   rollup_amount: string;
 }
 export interface ProjectReportRow {
+  available_first_on: string | null;
+  available_last_on: string | null;
   id: string;
   name: string;
   archived: boolean;
@@ -342,6 +344,7 @@ export interface ProjectReportRow {
 }
 export interface ProjectReport extends ReportMeta {
   report: 'projects';
+  first_transaction_on: string | null;
   date_from: string;
   date_to: string;
   include_archived: boolean;

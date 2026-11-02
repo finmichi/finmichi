@@ -41,7 +41,28 @@ export function reportService(db: Database) {
           { report: ProjectReport | null }[]
         >`SELECT report_projects(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.include_archived === 'true'}) report`;
         if (!r?.report) throw new DomainError('not_found', 404);
-        return r.report;
+        // Date navigation metadata is independent of the report period. The
+        // existing SQL report and all its period-scoped amounts stay unchanged.
+        const [ledgerDates] = await sql<{ first_on: string | null }[]>`
+          SELECT min(occurred_on)::text first_on FROM transactions WHERE ledger_id=${ledger}`;
+        const projectDates = await sql<
+          {
+            project_id: string;
+            first_on: string;
+            last_on: string;
+          }[]
+        >`SELECT project_id,min(occurred_on)::text first_on,max(occurred_on)::text last_on
+          FROM transactions WHERE ledger_id=${ledger} AND project_id IS NOT NULL GROUP BY project_id`;
+        const dates = new Map(projectDates.map((d) => [d.project_id, d]));
+        return {
+          ...r.report,
+          first_transaction_on: ledgerDates?.first_on ?? null,
+          projects: r.report.projects.map((p) => ({
+            ...p,
+            available_first_on: dates.get(p.id)?.first_on ?? null,
+            available_last_on: dates.get(p.id)?.last_on ?? null,
+          })),
+        };
       });
     },
     cashForecast: cashForecastService(db).forecast,

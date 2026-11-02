@@ -10,6 +10,13 @@
 - 科目明細保留自身與子樹的金額；支出組成長條圖以父科目 rollup 呈現，支援負支出。跨月時顯示有交易月份的收支趨勢與明細，空白月份不新增事件。
 - 日期、顯示封存及目前分析的專案可由 URL 還原。`project` 只控制畫面選擇，不送到 API；未知 URL 參數不送 API。
 
+## 期間導覽
+
+- 日期標籤「期間起／期間訖」是查詢期間，不是專案設定。
+- 從列表「分析」或 `?project=` 進入時，沒有明確 URL 日期就使用該專案全部歷史交易的首末日期；沒有交易仍沿用今年元旦至今天。URL 有 `date_from`／`date_to` 時，對應日期優先，不受預設值覆寫。
+- 「全部期間」將期間設為帳本最早交易日至今天（Asia/Taipei），並寫入 URL；最早交易日包含未指定專案與已封存專案的交易。空帳本以今天作為起日。
+- API 僅新增唯讀日期 metadata：頂層 `first_transaction_on`，每個專案 `available_first_on`／`available_last_on`。這些日期不受查詢期間限制；原 `first_on`／`last_on`、收支與筆數仍依指定期間。沒有對應交易時為 null。不新增或修改 migration、SQL function、金額口徑或寫入行為。
+
 ## API 與隔離
 
 `GET /api/ledgers/:ledger/reports/projects?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&include_archived=false`

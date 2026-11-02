@@ -258,3 +258,37 @@ it('recognizes the project report route and its page title', async () => {
   expect(isKnownRoute('/reports/projects')).toBe(true);
   expect(routeTitle('/reports/projects')).toBe('專案分析');
 });
+
+it('defaults project dates to its whole history while explicit URL dates win', async () => {
+  const { projectFiltersFromLocation, projectAnalysisUrl } =
+    await import('./report-state');
+  const id = '00000000-0000-4000-8000-000000000001';
+  const bounds = { first_on: '2025-04-10', last_on: '2025-04-12' };
+  const url = projectAnalysisUrl('/reports/projects?owner_id=ignored', id);
+  expect(url).not.toContain('date_from');
+  expect(url).not.toContain('owner_id');
+  expect(projectFiltersFromLocation(url, '2026-11-03', bounds)).toMatchObject({
+    date_from: '2025-04-10',
+    date_to: '2025-04-12',
+    project: id,
+  });
+  const explicit = projectAnalysisUrl(
+    '/reports/projects?date_from=2026-01-01&date_to=2026-02-01',
+    id,
+  );
+  expect(
+    projectFiltersFromLocation(explicit, '2026-11-03', bounds),
+  ).toMatchObject({
+    date_from: '2026-01-01',
+    date_to: '2026-02-01',
+  });
+  expect(
+    projectFiltersFromLocation(url, '2026-11-03', {
+      first_on: null,
+      last_on: null,
+    }),
+  ).toMatchObject({
+    date_from: '2026-01-01',
+    date_to: '2026-11-03',
+  });
+});

@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 import { connect, migrate } from '../packages/db/dist/index.js';
 import { sessionService, ledgerService } from '../packages/core/dist/index.js';
 import { createApp } from '../apps/server/dist/app.js';
-import { seedProjects } from './project-report-fixture.mjs';
+import { seedPastProject, seedProjects } from './project-report-fixture.mjs';
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl) throw new Error('TEST_DATABASE_URL required');
 const target = new URL(databaseUrl);
@@ -52,6 +52,14 @@ try {
       name: '合成專案分析驗收',
     }),
     ids = await seedProjects(db, actor, ledger.id);
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const pastYear = Number(today.slice(0, 4)) - 1;
+  const past = await seedPastProject(db, actor, ledger.id, ids.ids, pastYear);
   app = await createApp(
     {
       databaseUrl,
@@ -248,6 +256,89 @@ try {
         new URL(page.url()).searchParams.get('include_archived'),
         'true',
       );
+      // FB-029: no explicit dates, list link, explicit override, empty project,
+      // and ledger-wide dates (including an older unassigned transaction).
+      await page.goto(origin + '/reports/projects?project=' + past);
+      await page.waitForFunction(
+        ({ from, to }) => {
+          const inputs = [
+            ...globalThis.document.querySelectorAll('input[type="date"]'),
+          ];
+          return inputs[0]?.value === from && inputs[1]?.value === to;
+        },
+        { from: `${pastYear}-04-10`, to: `${pastYear}-04-12` },
+      );
+      await page
+        .getByRole('region', { name: '分析 合成去年旅遊', exact: true })
+        .getByText('NT$ 266.67', { exact: true })
+        .waitFor();
+      await page.goto(origin + '/reports/projects');
+      await page
+        .getByRole('button', { name: '分析 合成去年旅遊', exact: true })
+        .click();
+      assert.equal(new URL(page.url()).searchParams.has('date_from'), false);
+      await page
+        .getByRole('region', { name: '分析 合成去年旅遊', exact: true })
+        .getByText('NT$ 266.67', { exact: true })
+        .waitFor();
+      await page.waitForLoadState('networkidle');
+      assert.equal(
+        await page.evaluate(
+          () =>
+            globalThis.document.documentElement.scrollWidth >
+            globalThis.innerWidth,
+        ),
+        false,
+      );
+      const pastAxe = await new AxeBuilder({ page })
+        .withRules(['color-contrast'])
+        .analyze();
+      assert.equal(
+        pastAxe.violations.length,
+        0,
+        JSON.stringify(pastAxe.violations),
+      );
+      await page.screenshot({
+        path: `${output}/${width}-${theme}-past-project.png`,
+        fullPage: true,
+      });
+      await page.goto(
+        origin + '/reports/projects?' + dates + '&project=' + past,
+      );
+      await page
+        .getByRole('region', { name: '分析 合成去年旅遊', exact: true })
+        .getByText('0', { exact: true })
+        .waitFor();
+      assert.equal(
+        await page.getByLabel('期間起', { exact: true }).inputValue(),
+        '2026-09-01',
+      );
+      assert.equal(
+        await page.getByLabel('期間訖', { exact: true }).inputValue(),
+        '2026-10-31',
+      );
+      await page.getByRole('button', { name: '全部期間', exact: true }).click();
+      await page.waitForURL(
+        (u) => u.searchParams.get('date_from') === `${pastYear - 1}-02-01`,
+      );
+      assert.equal(new URL(page.url()).searchParams.get('date_to'), today);
+      await page
+        .getByRole('region', { name: '分析 合成去年旅遊', exact: true })
+        .getByText('NT$ 266.67', { exact: true })
+        .waitFor();
+      await page.waitForLoadState('networkidle');
+      await page.screenshot({
+        path: `${output}/${width}-${theme}-all-periods.png`,
+        fullPage: true,
+      });
+      await page.goto(origin + '/reports/projects?project=' + ids.empty);
+      await page
+        .getByRole('heading', { name: '專案分析：合成空白專案', exact: true })
+        .waitFor();
+      assert.equal(
+        await page.getByLabel('期間起', { exact: true }).inputValue(),
+        today.slice(0, 4) + '-01-01',
+      );
       results.push({
         width,
         height,
@@ -258,6 +349,10 @@ try {
         links: true,
         projectFilters: true,
         archived: true,
+        historicalDefaults: true,
+        explicitDates: true,
+        allPeriods: true,
+        emptyFallback: true,
       });
     }
   assert.deepEqual(errors, []);
