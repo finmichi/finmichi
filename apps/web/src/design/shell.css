@@ -816,7 +816,7 @@ textarea {
 }
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(130px, 1fr));
+  grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(130px, 1fr));
   gap: 12px;
 }
 .filter-kinds,
@@ -1029,7 +1029,13 @@ textarea {
 }
 @media (max-width: 899px) {
   .transaction-query .filter-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 0.65fr);
+    align-items: end;
+  }
+  .transaction-query .filter-grid > :first-child,
+  .transaction-query .filter-grid > :last-child {
+    grid-column: auto;
+    min-width: 0;
   }
   .transaction-query .mantine-Menu-root {
     min-width: 0;
