@@ -183,3 +183,5 @@ pnpm test:ux-<suite>       # Playwright UI 回歸，例如 test:ux-finance、tes
 ## v0.2.2 升級設定
 
 升級前先備份。保留私人 `.env`，但必須新增 `OIDC_HAIRPIN_HOST`，填入 `OIDC_ISSUER` 的主機名稱（例如 issuer 為 `https://sso.example.com/webman/sso`，填 `sso.example.com`），不可包含協定、port 或路徑。app 的 `extra_hosts` 會把此名稱解析到 `NAS_LAN_IP`；worker 不需要此設定。沒有設定時 Compose 直接回報 `OIDC_HAIRPIN_HOST required`，不會靜默啟動。app 啟動即做 OIDC discovery；此值不改變 TLS 憑證或 issuer 驗證。
+
+- [受管理交易的編輯導向](docs/managed-transactions.md)

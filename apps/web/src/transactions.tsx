@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { itemTree } from './design/item-options';
+import {
+  ManagedTransactionLink,
+  managedTarget,
+} from './design/managed-transaction';
 import { ItemPicker } from './design/item-picker';
 import { lazy, Suspense } from 'react';
 const StockEntry = lazy(() =>
@@ -1076,6 +1080,8 @@ export function Transactions(props: EntryProps) {
     [metadata, setMetadata] = useState<{
       security_id?: string;
       security_trade_id?: string;
+      dividend_id?: string;
+      deposit_id?: string;
     } | null>(null),
     [loading, setLoading] = useState(!!props.initialEditId);
   useEffect(() => {
@@ -1101,6 +1107,19 @@ export function Transactions(props: EntryProps) {
     };
   }, [props.initialEditId, props.ledger.id]);
   if (loading) return <LoadingState label="載入交易類型" />;
+  if (metadata && managedTarget(metadata))
+    return (
+      <Stack>
+        <Alert>
+          {managedTarget(metadata)!.label}
+          ，請前往對應管理畫面修改；一般交易編輯不會改動這筆資料。
+        </Alert>
+        <ManagedTransactionLink row={metadata} />
+        <Button variant="default" onClick={props.onClose}>
+          關閉
+        </Button>
+      </Stack>
+    );
   return (
     <div className="entry-mode-container">
       <div className="stock-mode-picker">

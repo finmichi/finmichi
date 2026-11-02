@@ -66,6 +66,7 @@ export interface QueryEntry {
   entry_position: number;
 }
 export interface QueryRow {
+  dividend_id?: string | null;
   deposit_id?: string | null;
   security_trade_id?: string | null;
   security_id?: string | null;

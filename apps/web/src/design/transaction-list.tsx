@@ -8,6 +8,7 @@ import { EdgeScroll } from './edge-scroll';
 import { formatDate, formatMoney, formatRate, formatFullRate } from './format';
 import { negate, units } from './display-math';
 import { openEntry } from './location';
+import { ManagedTransactionLink } from './managed-transaction';
 export const kindNames = {
   income: '收入',
   expense: '支出',
@@ -217,6 +218,7 @@ export function TransactionList({
                         >
                           {row.memo || '（無摘要）'}
                         </button>
+                        <ManagedTransactionLink row={row} />
                         {fx(row)}
                         {row.invoice_no && (
                           <div className="tx-note">發票：{row.invoice_no}</div>
@@ -312,6 +314,7 @@ export function TransactionList({
                         </div>
                         <TxMoney row={row} currency={currency} compact />
                       </div>
+                      <ManagedTransactionLink row={row} />
                       {fx(row)}
                       {row.project_name && (
                         <div className="tx-note">專案：{row.project_name}</div>
