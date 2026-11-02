@@ -51,7 +51,7 @@ export const querySchema = z
   })
   .refine(ranges);
 export const summarySchema = z
-  .strictObject({ ...fields, group_by: z.enum(['item', 'month']) })
+  .strictObject({ ...fields, group_by: z.enum(['item', 'month', 'project']) })
   .refine(ranges);
 export type QueryFilter = z.infer<typeof filterSchema>;
 export type QueryInput = z.infer<typeof querySchema>;
@@ -117,7 +117,14 @@ export interface MonthSummary {
   selected_net_amount: string | null;
 }
 export interface QuerySummary {
-  group_by: 'item' | 'month';
+  group_by: 'item' | 'month' | 'project';
+  projects?: {
+    id: string;
+    name: string;
+    count: number;
+    transaction_amount: string;
+    selected_net_amount: string | null;
+  }[];
   items: ItemSummary[];
   months: MonthSummary[];
   monthly_net: { month: string; selected_net_amount: string }[];

@@ -27,7 +27,7 @@
     "test:ux-foundations": "node scripts/ux-foundations-smoke.mjs",
     "test:ux-daily": "node scripts/ux-daily-smoke.mjs",
     "test:ux-entry": "node scripts/ux-entry-smoke.mjs",
-    "test:ux-reports": "node scripts/ux-reports-smoke.mjs",
+    "test:ux-reports": "node scripts/ux-reports-smoke.mjs && node scripts/project-report-ui-smoke.mjs",
     "test:ux-recurring": "node scripts/ux-recurring-smoke.mjs",
     "test:ux-admin": "node scripts/ux-admin-smoke.mjs",
     "test:ux-budget": "node scripts/ux-budget-smoke.mjs",

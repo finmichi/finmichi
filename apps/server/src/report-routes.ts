@@ -14,6 +14,9 @@ import {
 export function reportRoutes(app: FastifyInstance, db: Database) {
   const service = reportService(db),
     base = '/api/ledgers/:ledger/reports';
+  app.get<{ Params: { ledger: string } }>(base + '/projects', (r) =>
+    service.projects(r.actor!.id, r.params.ledger, r.query),
+  );
   type P = { Params: { ledger: string } };
   for (const [name, get, csv] of [
     ['profit-loss', service.profitLoss, profitLossCsv],

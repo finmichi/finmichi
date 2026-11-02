@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { projectReportSchema, type ProjectReport } from './report-schemas.js';
+import type { Transaction } from '@finmichi/db';
 import { revalueBalance } from './market-valuation.js';
 import { cashForecastService } from './cash-forecast.js';
 import { extendedReportService } from './report-extensions.js';
@@ -9,9 +11,39 @@ import { ownedLedger, valid, DomainError } from './catalog.js';
 import { idSchema } from './catalog-schemas.js';
 import { incomeReportSchema, type IncomeReport } from './report-schemas.js';
 import { balanceReportSchema, type BalanceReport } from './report-schemas.js';
+async function projectRef(
+  sql: Transaction,
+  ledger: string,
+  project: string | undefined,
+) {
+  if (
+    project &&
+    !(
+      await sql`SELECT id FROM projects WHERE ledger_id=${ledger} AND id=${project}`
+    ).length
+  )
+    throw new DomainError('not_found', 404);
+}
 export function reportService(db: Database) {
   return {
     ...extendedReportService(db),
+    async projects(
+      actor: string,
+      ledger: string,
+      input: unknown,
+    ): Promise<ProjectReport> {
+      valid(idSchema, actor);
+      valid(idSchema, ledger);
+      return await db.begin(async (sql) => {
+        await ownedLedger(sql, actor, ledger, false);
+        const q = valid(projectReportSchema, input);
+        const [r] = await sql<
+          { report: ProjectReport | null }[]
+        >`SELECT report_projects(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.include_archived === 'true'}) report`;
+        if (!r?.report) throw new DomainError('not_found', 404);
+        return r.report;
+      });
+    },
     cashForecast: cashForecastService(db).forecast,
     async budget(
       actor: string,
@@ -40,9 +72,10 @@ export function reportService(db: Database) {
       return (await db.begin(async (sql) => {
         await ownedLedger(sql, actor, ledger);
         const q = valid(categoryReportSchema, input);
+        await projectRef(sql, ledger, q.project_id);
         const [row] = await sql<
           { report: CategoryReport | null }[]
-        >`SELECT report_category_statistics(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.kind},${q.non_operating},${q.fixed}) AS report`;
+        >`${q.project_id ? sql`SELECT report_category_statistics_project(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.kind},${q.non_operating},${q.fixed},${q.project_id}) AS report` : sql`SELECT report_category_statistics(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.kind},${q.non_operating},${q.fixed}) AS report`}`;
         if (!row?.report) throw new DomainError('not_found', 404);
         return row.report;
       })) as CategoryReport;
@@ -58,9 +91,10 @@ export function reportService(db: Database) {
         return (await db.begin(async (sql) => {
           await ownedLedger(sql, actor, ledger);
           const q = valid(incomeReportSchema, input);
+          await projectRef(sql, ledger, q.project_id);
           const [row] = await sql<
             { report: IncomeReport | null }[]
-          >`SELECT report_income_summary(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.grain}) AS report`;
+          >`${q.project_id ? sql`SELECT report_income_summary_project(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.grain},${q.project_id}) AS report` : sql`SELECT report_income_summary(${actor},${ledger},${q.date_from}::text::date,${q.date_to}::text::date,${q.grain}) AS report`}`;
           if (!row?.report) throw new DomainError('not_found', 404);
           return row.report;
         })) as IncomeReport;

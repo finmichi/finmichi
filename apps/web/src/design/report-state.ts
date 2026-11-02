@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { formatDate } from './format';
-const incomeKeys = ['date_from', 'date_to', 'grain'] as const;
+const incomeKeys = ['date_from', 'date_to', 'grain', 'project_id'] as const;
 const categoryKeys = [
   'date_from',
   'date_to',
   'kind',
   'non_operating',
   'fixed',
+  'project_id',
 ] as const;
+const projectFilter = (p: URLSearchParams) => {
+  const id = p.get('project_id');
+  return id && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
+    ? { project_id: id }
+    : {};
+};
 const validDate = (value: string) => formatDate(value) !== '—';
 const read = (location: string) =>
   new URLSearchParams(location.split('?')[1] ?? '');
@@ -24,6 +31,7 @@ export function incomeFiltersFromLocation(location: string, today: string) {
     date_from: date(p.get('date_from'), today.slice(0, 7) + '-01'),
     date_to: date(p.get('date_to'), today),
     grain: choose(p.get('grain'), ['day', 'month', 'quarter', 'year'], 'month'),
+    ...projectFilter(p),
   };
 }
 export function categoryFiltersFromLocation(location: string, today: string) {
@@ -31,6 +39,7 @@ export function categoryFiltersFromLocation(location: string, today: string) {
   return {
     date_from: date(p.get('date_from'), today.slice(0, 7) + '-01'),
     date_to: date(p.get('date_to'), today),
+    ...projectFilter(p),
     kind: choose(p.get('kind'), ['income', 'expense'], 'expense'),
     non_operating: choose(
       p.get('non_operating'),
@@ -51,7 +60,7 @@ const url = (
   '?' +
   new URLSearchParams(
     keys
-      .filter((k) => k !== 'accounts' || !!filters[k])
+      .filter((k) => !['accounts', 'project_id'].includes(k) || !!filters[k])
       .map((k) => [k, filters[k] ?? '']),
   ).toString();
 export const incomeFiltersUrl = (filters: Record<string, string>) =>
@@ -118,7 +127,8 @@ export function extendedFiltersFromLocation(
   const p = read(location),
     base = incomeFiltersFromLocation(location, today);
   return {
-    ...base,
+    date_from: base.date_from,
+    date_to: base.date_to,
     grain: choose(
       p.get('grain'),
       profit
@@ -180,4 +190,26 @@ export function forecastFiltersFromLocation(location: string) {
       ? threshold
       : '0',
   };
+}
+
+export function projectFiltersFromLocation(location: string, today: string) {
+  const p = read(location),
+    id = p.get('project');
+  return {
+    date_from: date(p.get('date_from'), today.slice(0, 4) + '-01-01'),
+    date_to: date(p.get('date_to'), today),
+    include_archived: choose(
+      p.get('include_archived'),
+      ['true', 'false'],
+      'false',
+    ),
+    project:
+      id && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id) ? id : '',
+  };
+}
+export function projectFiltersUrl(filters: Record<string, string>) {
+  const p = new URLSearchParams();
+  for (const k of ['date_from', 'date_to', 'include_archived', 'project'])
+    if (filters[k]) p.set(k, filters[k]!);
+  return '/reports/projects?' + p;
 }

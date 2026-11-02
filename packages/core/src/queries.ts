@@ -181,6 +181,19 @@ export function queryService(db: Database) {
         const q = valid(summarySchema, input);
         await refs(sql, ledger, q);
         const total = await totals(sql, actor, ledger, q);
+        if (q.group_by === 'project') {
+          const projects = await sql<
+            NonNullable<QuerySummary['projects']>
+          >`${filtered(sql, actor, ledger, q)} SELECT project_id AS id,project_name AS name,count(*)::int AS count,sum(transaction_amount)::text AS transaction_amount,CASE WHEN ${q.item_id ?? null}::uuid IS NULL THEN NULL ELSE sum(selected_net_amount)::text END AS selected_net_amount FROM filtered WHERE project_id IS NOT NULL GROUP BY project_id,project_name ORDER BY project_name COLLATE "C",project_id`;
+          return {
+            group_by: 'project',
+            projects,
+            items: [],
+            months: [],
+            monthly_net: [],
+            totals: total,
+          };
+        }
         if (q.group_by === 'month') {
           const months = await sql<
             MonthSummary[]

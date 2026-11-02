@@ -40,6 +40,7 @@ import { navigate, useLocation, openEntry } from './design/location';
 import { EdgeScroll } from './design/edge-scroll';
 import { BackToTop } from './design/back-to-top';
 import { useTransactionRevision } from './design/data-revision';
+import { projectReportText } from './project-report-messages';
 import { queryProfit } from './design/query-profit';
 export function queryParams(filters: Record<string, string>) {
   return new URLSearchParams(filters).toString();
@@ -407,14 +408,6 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
         </>
       )}
       <Select
-        label="篩選專案"
-        searchable
-        clearable
-        data={options(projects)}
-        value={draft.project_id || null}
-        onChange={(v) => change('project_id', v ?? '')}
-      />
-      <Select
         label="篩選收付人"
         searchable
         clearable
@@ -546,6 +539,7 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
             data={[
               { value: 'item', label: '依科目' },
               { value: 'month', label: '依月份與類別' },
+              { value: 'project', label: projectReportText.group },
             ]}
           />
           {group === 'item' && (
@@ -656,6 +650,13 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
               placeholder="搜尋摘要、發票號碼"
               value={draft.keyword}
               onChange={(e) => change('keyword', e.currentTarget.value)}
+              onKeyDown={(e) => {
+                // A second common filter disables native implicit form submission on mobile.
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  apply();
+                }
+              }}
               maxLength={200}
             />
             {!mobile && (
@@ -684,6 +685,17 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
                 />
               </>
             )}
+            <Select
+              label={mobile ? undefined : '篩選專案'}
+              aria-label="篩選專案"
+              placeholder="篩選專案"
+              size={mobile ? 'xs' : 'sm'}
+              searchable
+              clearable
+              data={options(projects)}
+              value={draft.project_id || null}
+              onChange={(v) => change('project_id', v ?? '')}
+            />
           </div>
           <EdgeScroll axis="x" label="交易類別篩選">
             <div className="filter-kinds">
@@ -838,6 +850,27 @@ export function TransactionQuery({ ledger }: { ledger: Ledger }) {
           </Group>
         </>
       )}
+      {summary?.group_by === 'project' && (
+        <Text size="sm" c="dimmed">
+          {projectReportText.groupHelp}
+        </Text>
+      )}
+      {summary?.group_by === 'project' &&
+        summary.projects?.map((row) => (
+          <Paper key={row.id} withBorder p="md">
+            <Text fw={600}>{row.name}</Text>
+            <Text>
+              {row.count} 筆，交易金額{' '}
+              {formatMoney(row.transaction_amount, ledger.base_currency)}
+            </Text>
+            {row.selected_net_amount !== null && (
+              <Text>
+                所選科目淨變動{' '}
+                {formatMoney(row.selected_net_amount, ledger.base_currency)}
+              </Text>
+            )}
+          </Paper>
+        ))}
       {summary &&
         summary.group_by === 'item' &&
         tree(summary.items).map(({ row, depth }) => (
