@@ -1,0 +1,16 @@
+{
+  "name": "@finmichi/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@finmichi/core": "workspace:*",
+    "@finmichi/db": "workspace:*"
+  },
+  "license": "AGPL-3.0-only"
+}

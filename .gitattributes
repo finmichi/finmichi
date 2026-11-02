@@ -1,0 +1,3 @@
+# Keep encoded synthetic CSV fixtures byte-for-byte (including CRLF and BOM).
+fixtures/life2023/*.csv -text
+fixtures/life2023/life2023-big5.csv binary

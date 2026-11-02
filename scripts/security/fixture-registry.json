@@ -1,0 +1,282 @@
+[
+  {
+    "path": "apps/web/public/brand/apple-touch-icon.png",
+    "kind": "asset",
+    "sha256": "e9fd9583d1ce7486da590d40dcd90479646800db022b6da3492ed4e078008761",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/icon-16.png",
+    "kind": "asset",
+    "sha256": "355bd38df84debd12dea9ba522516882821f92ec0ef69b7e86fa46c11d4f0d45",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/icon-192.png",
+    "kind": "asset",
+    "sha256": "ac9fe3e4ebb73be6299b0adb5ff8def626889e602d78781117858fcefb15bfbd",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/icon-32.png",
+    "kind": "asset",
+    "sha256": "d95c043a7afd1647882a4fb8bfd73b80c1336e4bd5d0d7e59b63a3a1d9851e6b",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/icon-512.png",
+    "kind": "asset",
+    "sha256": "9579d9d3e4e1700e7dc979dd1e0b6e6cf56df15e853fb7726a87915838b6d97e",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/maskable-512.png",
+    "kind": "asset",
+    "sha256": "0c4a00c47c5f1f25c334ed47315134b45f33e9ed8faeebfb9cce7482eb787637",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/brand/og-image.png",
+    "kind": "asset",
+    "sha256": "af14a7190184f15efcebc5618bcbd083a13f6400deeb723d092726dd834810cb",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/icons/icon-192.png",
+    "kind": "asset",
+    "sha256": "ac9fe3e4ebb73be6299b0adb5ff8def626889e602d78781117858fcefb15bfbd",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "apps/web/public/icons/icon-512.png",
+    "kind": "asset",
+    "sha256": "9579d9d3e4e1700e7dc979dd1e0b6e6cf56df15e853fb7726a87915838b6d97e",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "fixtures/life2023/life2023-big5.csv",
+    "kind": "fixture",
+    "sha256": "636d79c8e63ad46a83afbc7a7d3c4ddc111380b275df62cab783216ffa48615a",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "fixtures/life2023/life2023-utf8.csv",
+    "kind": "fixture",
+    "sha256": "fb2ccc5c84e1db9bfd44092ee752a342886cf2218b6aab5f9f3367bdef0415b2",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/src/fixtures/loan-decimal-reference.json",
+    "kind": "fixture",
+    "sha256": "51effe025e0dbda86f106141aea53648e46d421c9f9906df5ddf75013602b068",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/bot-trailing-empty.csv",
+    "kind": "fixture",
+    "sha256": "b7ee4eeb747c09fab61f2d7f0d6ee7844b07d8384f4af14e8a6fd1deb5d9f63f",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/bot.csv",
+    "kind": "fixture",
+    "sha256": "b2c2fae712f0b542c801ddfbccaae183197be6aacc57fae2fc1b1852f22fc781",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/calendar.json",
+    "kind": "fixture",
+    "sha256": "dabc0394e6996ac1dbc15371577fb5041c45d7831267cc92310762927e550b80",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/oracle.json",
+    "kind": "fixture",
+    "sha256": "2b2ae0c8a60c83a489f53e9e7e220054733b43a171bd93293edd8b3540dc09c7",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/tpex.json",
+    "kind": "fixture",
+    "sha256": "5f9e198a9ed80c7fae44d3b2b65eea0a95c76007d6f8ff212b56d2a9565aa027",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/twse.csv",
+    "kind": "fixture",
+    "sha256": "8a6daf432f96bd73ea10f1a18c435c0cb9576872f29d5f0cd36978d35869f21e",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/market/twse.json",
+    "kind": "fixture",
+    "sha256": "c113694d6ac6eccd35b99c76ba72742079c60ac8808cfa7102a66e22ae7aa5b0",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "packages/core/test/fixtures/securities/oracle.json",
+    "kind": "fixture",
+    "sha256": "b4dfc712882b67e0151eb6928208a117437dd8db5a95c3221da32df1aa4ecc40",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "scripts/brand/source/Manrope[wght].ttf",
+    "kind": "asset",
+    "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6",
+    "reason": "Repository brand image or licensed local font; no financial documents",
+    "generation": "Brand rendering source and OFL license are tracked in this repository"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/currency_set.csv",
+    "kind": "fixture",
+    "sha256": "915fbf4453b2dc788a2adeffbd56e4a6720ca94ca9503727451c272bf5886e35",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/item_data.csv",
+    "kind": "fixture",
+    "sha256": "0b3df91e1648bd732f5f7e8a5803e16114bb3e428dd6de2ccb36e22d72a95d04",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/mymoney_data.csv",
+    "kind": "fixture",
+    "sha256": "d81d8b5bd0dd22f474522f7d87bf8e0eac588928bbd6a9adee1db4c048586495",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/project_set.csv",
+    "kind": "fixture",
+    "sha256": "ae9f9b260b72126e932cedab1c2d6265ee7e12df8df184b76babbfa94d493aae",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/regular_data.csv",
+    "kind": "fixture",
+    "sha256": "152c9aaf033c75fcb01f44483aa4c3efe1c5c8fe0c78865e6ba4c1fb4bacb55e",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/shop_data.csv",
+    "kind": "fixture",
+    "sha256": "dd582d7a300c7ff69420fcdac9f4a29259eb39dd4def4c6fe777c7bc680e3349",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/stock_data.csv",
+    "kind": "fixture",
+    "sha256": "cccc3dfc1257f350bcfa4240d47b09fdbafab05326619783f3ad8e32b65c95aa",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures-investments/stock_id_data.csv",
+    "kind": "fixture",
+    "sha256": "66c0d264ebda86ffe4cd41cc697b61ec8c250002ac3991de321748a78186b0c7",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/currency_set.csv",
+    "kind": "fixture",
+    "sha256": "915fbf4453b2dc788a2adeffbd56e4a6720ca94ca9503727451c272bf5886e35",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/item_data.csv",
+    "kind": "fixture",
+    "sha256": "0b3df91e1648bd732f5f7e8a5803e16114bb3e428dd6de2ccb36e22d72a95d04",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/mymoney_data.csv",
+    "kind": "fixture",
+    "sha256": "b5d0a4e2d3d9ed1a9c770fad91a5833dca8252f25b13f445db5f2ed4ff04feee",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/project_set.csv",
+    "kind": "fixture",
+    "sha256": "ae9f9b260b72126e932cedab1c2d6265ee7e12df8df184b76babbfa94d493aae",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/regular_data.csv",
+    "kind": "fixture",
+    "sha256": "9a9bb9c9a8a6d0f7bc4bc0a045a7abc56dc36178fc00f6a40f37406be5d3fc8e",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/shop_data.csv",
+    "kind": "fixture",
+    "sha256": "dd582d7a300c7ff69420fcdac9f4a29259eb39dd4def4c6fe777c7bc680e3349",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/stock_data.csv",
+    "kind": "fixture",
+    "sha256": "33b6725be7e8b11e254319759090edc8436605c426cef331fcafa538d1af00ff",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "tools/emoney-import/fixtures/stock_id_data.csv",
+    "kind": "fixture",
+    "sha256": "66c0d264ebda86ffe4cd41cc697b61ec8c250002ac3991de321748a78186b0c7",
+    "reason": "Synthetic parser/accounting fixture; no real customer or financial source",
+    "generation": "Hand-authored synthetic examples or independent arithmetic reference generator; exact bytes reviewed"
+  },
+  {
+    "path": "LICENSE",
+    "kind": "document",
+    "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+    "reason": "Approved root legal or contributor document; remains subject to UTF-8, data and environment scans.",
+    "generation": "Copied verbatim from approved legal documents; checksum fixed in registry."
+  },
+  {
+    "path": "NOTICE",
+    "kind": "document",
+    "sha256": "041027d7d4b5e43ab70500ec8034b58e7e9f90caad87b1afda2134c4596058ca",
+    "reason": "Approved root legal or contributor document; remains subject to UTF-8, data and environment scans.",
+    "generation": "Copied verbatim from approved legal documents; checksum fixed in registry."
+  },
+  {
+    "path": "AUTHORS",
+    "kind": "document",
+    "sha256": "5931da88890c6ba85a4072fb54dd09bd0e50269dbdaf551bf9d7a41369b9fa41",
+    "reason": "Approved root legal or contributor document; remains subject to UTF-8, data and environment scans.",
+    "generation": "Copied verbatim from approved legal documents; checksum fixed in registry."
+  }
+]

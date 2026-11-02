@@ -1,0 +1,10 @@
+ITEM_CLASS,ITEM_NOTE,PARENT_NOTE,EXCHANGE_NOTE,EXCHANGE,BEFORE_MOUNT,ACCOUNT_ID,MAKE_NO
+資產,現金,現金,台幣,1,10000,cash,1
+資產,銀行,銀行,,1,0,bank,2
+負債,信用卡,信用卡,台幣,1,-3000,card,3
+收入,薪資,薪資,,1,0,salary,4
+支出,餐費,餐費,,1,0,meal,5
+資產,美元帳戶,美元帳戶,美元,32,100,usd,6
+資產,日圓帳戶,日圓帳戶,日圓,0.01,0,jpy,7
+負債,銀行,銀行,台幣,1,0,bankdebt,8
+資產,活存,銀行,台幣,1,0,savings,9

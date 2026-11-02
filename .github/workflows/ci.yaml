@@ -1,0 +1,300 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      full: ${{ steps.select.outputs.full }}
+      docs: ${{ steps.select.outputs.docs }}
+      suites: ${{ steps.select.outputs.suites }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0, persist-credentials: false }
+      - id: select
+        name: Select CI from immutable PR diff
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_REF: ${{ github.ref }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CI_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: node scripts/ci/plan.mjs
+  check:
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with: { version: 10.18.3 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          {
+            node-version: 22,
+            cache: pnpm,
+            cache-dependency-path: pnpm-lock.yaml,
+          }
+      - run: pnpm install --frozen-lockfile
+      - name: Install pinned secret scanner
+        run: sh scripts/security/install-gitleaks.sh
+      - name: Content scanner contracts
+        run: node --test scripts/security/*.test.mjs
+      - name: Reject unexpected legacy product identifiers
+        run: node scripts/check-legacy-names.mjs
+      - name: Environment identifier scan (trusted repository only)
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        env:
+          ENV_IDENTIFIER_PATTERNS: ${{ secrets.ENV_IDENTIFIER_PATTERNS }}
+        run: node scripts/security/content.mjs environment
+      - name: Synthetic data and file policy scan
+        if: ${{ !cancelled() }}
+        run: node scripts/security/content.mjs data
+      - name: Secret scan (PR added diff or tracked tree)
+        if: ${{ !cancelled() }}
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/security/gitleaks.mjs
+      - name: Docs-only lint and format
+        if: needs.plan.outputs.docs == 'true'
+        run: pnpm lint
+      - name: Unit, property, types and build
+        if: needs.plan.outputs.docs != 'true'
+        run: pnpm check
+      - name: CI selection and workflow contracts
+        if: needs.plan.outputs.docs != 'true'
+        run: |
+          node --test scripts/ci/*.test.mjs
+          sh scripts/ci/actionlint.sh
+      - name: Deploy bundle and scheduler contract
+        if: needs.plan.outputs.docs != 'true'
+        run: node scripts/deploy-bundle-smoke.mjs
+      - name: NAS Compose static contract
+        if: needs.plan.outputs.docs != 'true'
+        run: |
+          node scripts/nas-config-check.mjs
+          node scripts/container-manager-config-check.mjs
+      - if: needs.plan.outputs.docs != 'true'
+        run: pnpm audit --prod --audit-level high
+  db-integration:
+    needs: plan
+    if: needs.plan.outputs.docs != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { persist-credentials: false }
+      - name: MDB exporter (synthetic command stubs only)
+        if: needs.plan.outputs.full == 'true'
+        run: |
+          docker build -f tools/mdb-export/Dockerfile -t life-mdb-export:test .
+          node scripts/mdb-export-smoke.mjs
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build gosu-free PostgreSQL
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: deploy/postgres.Dockerfile
+          target: ''
+          load: true
+          push: false
+          tags: finmichi-postgres:ci
+          cache-from: type=gha,scope=ci-postgres-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-postgres-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Start synthetic PostgreSQL
+        run: |
+          docker run -d --name synthetic-postgres --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp --tmpfs /var/run/postgresql -e POSTGRES_USER=synthetic -e POSTGRES_DB=synthetic -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:5432:5432 finmichi-postgres:ci
+          for _attempt in $(seq 1 30); do
+            if docker exec synthetic-postgres pg_isready -h 127.0.0.1 -U synthetic -d synthetic; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with: { version: 10.18.3 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          {
+            node-version: 22,
+            cache: pnpm,
+            cache-dependency-path: pnpm-lock.yaml,
+          }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Build pinned DB test image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: Dockerfile
+          target: 'build'
+          load: true
+          push: false
+          tags: finmichi-db-test
+          cache-from: type=gha,scope=ci-db-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-db-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: DB and official SDK MCP integration in pinned Node image (without Python)
+        run: |
+          docker run --rm --network container:synthetic-postgres --cap-drop ALL --security-opt no-new-privileges -e TEST_DATABASE_URL finmichi-db-test sh -c '
+            node --version
+            if command -v python3 >/dev/null 2>&1; then echo "Unexpected python3 in pinned Node image"; exit 1; fi
+            echo "python3 absent; all CSV tests use the repo Node parser"
+            pnpm test:db
+          '
+        env:
+          TEST_DATABASE_URL: postgres://synthetic@localhost:5432/synthetic
+      - name: Cache Playwright browser (lockfile pins browser version)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Playwright browser and system libraries
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Selected UI acceptance (full matrix only for explicit full CI)
+        run: |
+          bash deploy/setup-dev.sh
+          node scripts/ci/run-ui.mjs
+        env:
+          TEST_DATABASE_URL: postgres://synthetic@localhost:5432/synthetic
+          CI_UI_SUITES: ${{ needs.plan.outputs.suites }}
+      - name: Upload full UI evidence only on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: transaction-ui-${{ github.sha }}
+          path: test-results/
+          retention-days: 7
+      - name: Upload compact timing report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ui-timing-${{ github.sha }}
+          path: test-results/ci-ui-timing.json
+          retention-days: 7
+      - name: Remove synthetic PostgreSQL
+        if: always()
+        run: docker rm -fv synthetic-postgres
+  runtime-smoke:
+    needs: plan
+    if: needs.plan.outputs.full == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { persist-credentials: false }
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build app
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: Dockerfile
+          target: 'runtime'
+          load: true
+          push: false
+          tags: finmichi:scan,finmichi-dev:0.0.1
+          cache-from: type=gha,scope=ci-app-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-app-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Build worker
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: Dockerfile
+          target: 'worker'
+          load: true
+          push: false
+          tags: finmichi-worker-dev:0.0.1
+          cache-from: type=gha,scope=ci-worker-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-worker-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Build PostgreSQL
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: deploy/postgres.Dockerfile
+          target: ''
+          load: true
+          push: false
+          tags: finmichi-postgres:dev
+          cache-from: type=gha,scope=ci-postgres-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-postgres-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Build mock OIDC
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: deploy/Dockerfile.mock-oidc
+          target: ''
+          load: true
+          push: false
+          tags: finmichi-mock-oidc:6.0.7
+          cache-from: type=gha,scope=ci-mock-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=ci-mock-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Configure synthetic dev secrets
+        run: bash deploy/setup-dev.sh
+      - name: Runtime and real OIDC smoke
+        run: |
+          set -euo pipefail
+          if ! docker compose -f deploy/compose.dev.yaml up -d --wait --wait-timeout 180; then
+            docker compose -f deploy/compose.dev.yaml logs --no-color app
+            exit 1
+          fi
+          docker compose -f deploy/compose.dev.yaml ps | tee compose-ps.txt
+          python3 scripts/mock-oidc-smoke.py | tee oidc-smoke.txt
+          node scripts/worker-container-smoke.mjs | tee worker-smoke.txt
+      - name: Synthetic NAS production HTTP, discovery, backup and restore
+        run: |
+          docker compose -f deploy/compose.dev.yaml down -v
+          docker tag finmichi:scan finmichi:d0-test
+          docker tag finmichi-worker-dev:0.0.1 finmichi-worker:d0-test
+          docker tag finmichi-postgres:dev finmichi-postgres:d0-test
+          node scripts/nas-smoke.mjs > nas-smoke.json
+      - name: Prepare offline smoke fixtures (before isolated test)
+        run: |
+          docker pull docker:24.0.2-dind@sha256:1d148deae16a6bb4c89224c636e1fd1799a4d5925f545861ce0d7bea3a527b5d
+          docker pull node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392
+      - name: Container Manager equivalent offline daemon smoke (no registry access)
+        run: node scripts/container-manager-smoke.mjs > container-manager-smoke.json
+      - name: Upload runtime smoke evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: runtime-smoke-${{ github.sha }}
+          path: |
+            compose-ps.txt
+            oidc-smoke.txt
+            worker-smoke.txt
+            nas-smoke.json
+            container-manager-smoke.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Stop synthetic runtime
+        if: always()
+        run: docker compose -f deploy/compose.dev.yaml down -v
+  ci-result:
+    if: always()
+    needs: [plan, check, db-integration, runtime-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every selected gate
+        env:
+          PLAN: ${{ needs.plan.result }}
+          CHECK: ${{ needs.check.result }}
+          DOCS: ${{ needs.plan.outputs.docs }}
+          FULL: ${{ needs.plan.outputs.full }}
+          DB: ${{ needs.db-integration.result }}
+          RUNTIME: ${{ needs.runtime-smoke.result }}
+        run: |
+          test "$PLAN" = success && test "$CHECK" = success
+          if [ "$DOCS" = true ]; then test "$DB" = skipped; else test "$DB" = success; fi
+          if [ "$FULL" = true ]; then
+            test "$RUNTIME" = success
+          else
+            test "$RUNTIME" = skipped
+          fi

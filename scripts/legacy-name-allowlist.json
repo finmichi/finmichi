@@ -1,0 +1,137 @@
+[
+  {
+    "path": "README.md",
+    "text": "> 本專案原名 **life-ledger**，2026-10 起更名為 FinMichi（ADR-0013）。`v0.1.x` 以前的 tag、Release 與 GHCR image 仍保留舊名稱；舊版 JSON 備份（`format: life-ledger`）可以永久還原。",
+    "reason": "Historical rename and old release/backup compatibility notice"
+  },
+  {
+    "path": "README.md",
+    "text": "- **JSON 備份**：在網站的管理中心下載與還原（完整或只還原結構）。可還原的格式為 `life-ledger` v1–v8 與 `finmichi` v9（未支援的未來 schemaVersion 仍明確拒絕）。",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "apps/server/src/p2-backup.db.test.ts",
+    "text": "  old.format = 'life-ledger';",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "apps/server/src/restore.db.test.ts",
+    "text": "    input.format = version < 9 ? 'life-ledger' : 'finmichi';",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "      'life-ledger-ledger': 'synthetic',",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "      'life-ledger-theme': 'dark',",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "      'life-ledger-extra': '',",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    expect(s.getItem('life-ledger-ledger')).toBeNull();",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    expect(s.getItem('life-ledger-theme')).toBeNull();",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    expect(s.getItem('life-ledger-extra')).toBeNull();",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    const s = storage({ 'life-ledger-theme': 'dark', 'finmichi-theme': '' });",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    expect(s.getItem('life-ledger-theme')).toBe('dark');",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    const s = storage({ 'life-ledger-theme': 'dark' });",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.test.ts",
+    "text": "    expect(s.getItem('life-ledger-theme')).toBe('dark');",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.ts",
+    "text": "      if (!key?.startsWith('life-ledger-')) continue;",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "apps/web/src/design/storage-migration.ts",
+    "text": "      const next = 'finmichi-' + key.slice('life-ledger-'.length);",
+    "reason": "Permanent old localStorage preference migration and regression"
+  },
+  {
+    "path": "deploy/RUNBOOK-nas.md",
+    "text": "舊版 `life-ledger-YYYYMMDD-HHMMSS.dump` 仍可交給新版 restore drill，還原到 `finmichi_drill` 並忽略舊 owner；新版輪替只處理 `finmichi-*.dump`，不會刪除舊版備份。",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "docs/adr/0003-postgres-image.md",
+    "text": "3. compose.dev／staging／nas 改用此 image（staging/nas 透過 GHCR 發布 `ghcr.io/finmichi/life-ledger-postgres:<tag>`）。",
+    "reason": "Historical ADR content is immutable"
+  },
+  {
+    "path": "docs/phase1-json-backup.md",
+    "text": "format=finmichi，schemaVersion=9（永久接受舊 life-ledger v1–v8；未知未來版本仍拒絕），含 exportedAt、appVersion、ledger、tables、counts、payloadSha256。金額／匯率以 PostgreSQL numeric 原值字串輸出；時間戳保留6位小數，分錄 entry_position 不重排。payloadSha256 只涵蓋 tables，遞迴排序 object keys、保留 array 順序、無空白的 canonical JSON；不作身分驗證或加密保證。不能把它當成數位簽章。",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "packages/core/src/backup-schemas.ts",
+    "text": "  format: z.literal('life-ledger'),",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "packages/core/src/restores.test.ts",
+    "text": "    input.format = 'life-ledger';",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "packages/core/src/restores.test.ts",
+    "text": "    { ...b, format: 'life-ledger' },",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "scripts/check-legacy-names.mjs",
+    "text": "const pattern = 'life-ledger|life_ledger|lifeledger';",
+    "reason": "CI gate search pattern itself"
+  },
+  {
+    "path": "scripts/nas-smoke.mjs",
+    "text": "  const oldDump = join(root, 'backup', 'life-ledger-20000101-000000.dump');",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "tools/emoney-import/src/investments.db.test.ts",
+    "text": "  legacy.format = 'life-ledger';",
+    "reason": "Permanent old backup format/filename compatibility and regression"
+  },
+  {
+    "path": "apps/server/src/finance.db.test.ts",
+    "text": "  old.format = 'life-ledger';",
+    "reason": "Permanent old backup format regression fixture"
+  },
+  {
+    "path": "apps/server/src/deposits.db.test.ts",
+    "text": "  legacy.format = 'life-ledger';",
+    "reason": "Permanent old backup format regression fixture"
+  }
+]

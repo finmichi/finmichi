@@ -1,0 +1,218 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+# No concurrency cancellation: every authorized release must finish.
+env:
+  DOCKER_BUILD_RECORD_UPLOAD: 'false'
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: finmichi
+            dockerfile: Dockerfile
+            target: runtime
+          - package: finmichi-worker
+            dockerfile: Dockerfile
+            target: worker
+          - package: finmichi-postgres
+            dockerfile: deploy/postgres.Dockerfile
+            target: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0, persist-credentials: false }
+      - name: Require released commit on main
+        if: github.event_name == 'push'
+        run: git merge-base --is-ancestor HEAD origin/main
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ matrix.package }}:release-scan
+          cache-from: type=gha,scope=release-${{ matrix.package }}-${{ hashFiles('pnpm-lock.yaml') }}
+          cache-to: type=gha,scope=release-${{ matrix.package }}-${{ hashFiles('pnpm-lock.yaml') }},mode=max
+      - name: Blocking fixable HIGH and CRITICAL
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: ${{ matrix.package }}:release-scan
+          format: json
+          output: trivy-blocking.json
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+      - name: Full non-blocking report
+        if: always()
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: ${{ matrix.package }}:release-scan
+          format: json
+          output: trivy-full.json
+          exit-code: '0'
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+      - name: Convert reports to table
+        if: always()
+        run: |
+          for report in trivy-*.json; do
+            trivy convert --format table --output "${report%.json}.txt" "$report"
+          done
+      - name: Upload vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: trivy-${{ matrix.package }}-${{ github.sha }}
+          path: |
+            trivy-*.json
+            trivy-*.txt
+          if-no-files-found: error
+      - name: Export the exact scanned image for publishing
+        if: github.event_name == 'push'
+        run: docker save '${{ matrix.package }}:release-scan' -o image.tar
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'push'
+        with:
+          name: image-${{ matrix.package }}
+          path: image.tar
+          retention-days: 1
+          compression-level: 0
+      - name: Dry-run evidence (no registry login or push)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          docker image inspect '${{ matrix.package }}:release-scan' --format '{{.Id}} {{.Os}}/{{.Architecture}}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Dry run: built and scanned; no image published.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Export offline image asset (dry-run, no registry login/push)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PACKAGE: ${{ matrix.package }}
+          RELEASE_VERSION: dry-run-${{ github.sha }}
+        run: |
+          docker tag "$PACKAGE:release-scan" "ghcr.io/finmichi/$PACKAGE:$RELEASE_VERSION"
+          sh scripts/export-image-asset.sh "$PACKAGE" "$RELEASE_VERSION" "$RUNNER_TEMP/offline-assets"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: offline-${{ matrix.package }}
+          path: ${{ runner.temp }}/offline-assets/*
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0, persist-credentials: false }
+      - name: Require released commit on main
+        if: github.event_name == 'push'
+        run: git merge-base --is-ancestor HEAD origin/main
+      - name: Build deploy bundle and SHA-256 (also in dry-run)
+        env:
+          RELEASE_VERSION: ${{ github.event_name == 'push' && github.ref_name || format('dry-run-{0}', github.sha) }}
+        run: |
+          sh scripts/build-deploy-bundle.sh "$RELEASE_VERSION" "$RUNNER_TEMP/deploy-bundle"
+          cd "$RUNNER_TEMP/deploy-bundle"
+          sha256sum -c ./*.tar.gz.sha256 ./*.zip.sha256
+          mkdir tar-check zip-check
+          tar -xzf ./*.tar.gz -C tar-check
+          python3 -m zipfile -e ./*.zip zip-check
+          diff -r tar-check zip-check
+          (cd tar-check && sha256sum -c SHA256SUMS)
+          (cd tar-check && sha256sum -c ../*.files.sha256)
+          rm -rf tar-check zip-check
+          cat ./*.sha256 >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deploy-bundle
+          path: ${{ runner.temp }}/deploy-bundle/*
+          if-no-files-found: error
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [image, bundle]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { fetch-depth: 0, persist-credentials: false }
+      - run: git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: image-*
+          path: images
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: deploy-bundle
+          path: deploy-bundle
+      - name: Verify deploy bundle before publishing
+        run: cd deploy-bundle && sha256sum -c ./*.tar.gz.sha256 ./*.zip.sha256
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Require existing packages to be private
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for package in finmichi finmichi-worker finmichi-postgres; do
+            if gh api "orgs/finmichi/packages/container/$package" > package.json 2> package-error.txt; then
+              test "$(jq -r .visibility package.json)" = private
+            elif ! grep -q 'HTTP 404' package-error.txt; then
+              cat package-error.txt
+              exit 1
+            fi
+          done
+      - name: Publish all scanned amd64 images with one tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mkdir offline-assets
+          printf '# Images — %s\n\n' "$RELEASE_TAG" > release-images.md
+          for package in finmichi finmichi-worker finmichi-postgres; do
+            docker load -i "images/image-$package/image.tar"
+            test "$(docker inspect "$package:release-scan" --format '{{.Os}}/{{.Architecture}}')" = linux/amd64
+            ref="ghcr.io/finmichi/$package:$RELEASE_TAG"
+            docker tag "$package:release-scan" "$ref"
+            docker push "$ref"
+            sh scripts/export-image-asset.sh "$package" "$RELEASE_TAG" offline-assets
+            asset="offline-assets/finmichi-image-$package-$RELEASE_TAG.tar"
+            (cd offline-assets && sha256sum -c "$(basename "$asset").sha256")
+            private=false
+            for _attempt in 1 2 3; do
+              if [ "$(gh api orgs/finmichi/packages/container/$package --jq .visibility)" = private ]; then private=true; break; fi
+              sleep 5
+            done
+            test "$private" = true
+            digest=$(docker image inspect "$ref" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep "^ghcr.io/finmichi/$package@sha256:" | head -1)
+            test -n "$digest"
+            printf -- "- \`%s\` (linux/amd64, private): \`%s\`\n" "$ref" "$digest" >> release-images.md
+            printf -- "  - tar: \`%s\`; SHA-256: \`%s\`; image ID (config digest): \`%s\`\n" "$(basename "$asset")" "$(jq -r .sha256 "$asset.json")" "$(jq -r .image_id "$asset.json")" >> release-images.md
+          done
+          {
+            printf '\n# Deploy bundle\n\nDownload tar.gz or zip and its checksum. The Container Manager GUI guide is README.md (SSH alternative under ssh/). Both archives contain identical files; per-file hashes follow. Image tar files are private Release assets for offline import; verify their SHA-256 before importing. Image ID means config digest, not registry manifest digest.\n\n```text\n'
+            cat deploy-bundle/*.sha256
+            printf '```\n'
+          } >> release-images.md
+          cat release-images.md >> "$GITHUB_STEP_SUMMARY"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --notes-file release-images.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file release-images.md
+          fi
+          gh release upload "$RELEASE_TAG" deploy-bundle/*.tar.gz deploy-bundle/*.zip deploy-bundle/*.sha256 offline-assets/*.tar offline-assets/*.sha256 offline-assets/*.json --clobber

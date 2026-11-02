@@ -1,0 +1,36 @@
+{
+  "item_classes": {
+    "其它": {
+      "kind": "equity",
+      "non_operating": false
+    }
+  },
+  "items": [
+    {
+      "item_class": "其它",
+      "item_note": "合成資產",
+      "kind": "asset",
+      "non_operating": false
+    }
+  ],
+  "currencies": {
+    "合成美元別名": "USD",
+    "歐元": "EUR"
+  },
+  "opening_rates": {
+    "合成外幣科目": "32.5"
+  },
+  "exclude_opening": ["合成排除科目"],
+  "item_currencies": [
+    {
+      "item_class": "資產",
+      "item_note": "合成日圓帳戶",
+      "currency": "JPY"
+    },
+    {
+      "item_class": "負債",
+      "item_note": "合成確認台幣帳戶",
+      "currency": "TWD"
+    }
+  ]
+}

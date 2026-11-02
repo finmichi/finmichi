@@ -1,0 +1,17 @@
+FinMichi
+Copyright (C) 2026 FinMichi contributors (see AUTHORS)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, version 3 only (AGPL-3.0-only).
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details (LICENSE).
+
+The "FinMichi" name and logos are not licensed under the AGPL;
+see TRADEMARK.md.
+
+Third-party components keep their own licenses, including the Manrope
+typeface (SIL Open Font License 1.1, apps/web/public/font-licenses.txt).

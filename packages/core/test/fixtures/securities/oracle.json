@@ -1,0 +1,606 @@
+{
+  "synthetic_only": true,
+  "oracle": "Python Decimal precision100 ROUND_HALF_UP; no production math imported",
+  "cases": [
+    {
+      "name": "partial_and_final_sale",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "10",
+          "fee": "2"
+        },
+        {
+          "trade_type": "buy",
+          "quantity": "50",
+          "price": "12.345678",
+          "fee": "3",
+          "tax": "1"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "40",
+          "price": "15.678901",
+          "fee": "1.23",
+          "tax": "0.45"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "110",
+          "price": "9.999999",
+          "fee": "2.50",
+          "tax": "0.75"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "1002.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0200"
+        },
+        {
+          "quantity_before": "100",
+          "cost_before": "1002.00",
+          "gross": "617.28",
+          "cost_removed": "0.00",
+          "quantity_after": "150",
+          "cost_after": "1623.28",
+          "realized_gain": "0.00",
+          "average_cost": "10.8219"
+        },
+        {
+          "quantity_before": "150",
+          "cost_before": "1623.28",
+          "gross": "627.16",
+          "cost_removed": "432.87",
+          "quantity_after": "110",
+          "cost_after": "1190.41",
+          "realized_gain": "192.61",
+          "average_cost": "10.8219"
+        },
+        {
+          "quantity_before": "110",
+          "cost_before": "1190.41",
+          "gross": "1100.00",
+          "cost_removed": "1190.41",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "-93.66",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "half_cent_and_final_residue",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "1",
+          "price": "1.005"
+        },
+        {
+          "trade_type": "buy",
+          "quantity": "1",
+          "price": "2.675"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "1",
+          "price": "5",
+          "fee": "0.05",
+          "tax": "0.01"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "1",
+          "price": "3"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1.01",
+          "cost_removed": "0.00",
+          "quantity_after": "1",
+          "cost_after": "1.01",
+          "realized_gain": "0.00",
+          "average_cost": "1.0100"
+        },
+        {
+          "quantity_before": "1",
+          "cost_before": "1.01",
+          "gross": "2.68",
+          "cost_removed": "0.00",
+          "quantity_after": "2",
+          "cost_after": "3.69",
+          "realized_gain": "0.00",
+          "average_cost": "1.8450"
+        },
+        {
+          "quantity_before": "2",
+          "cost_before": "3.69",
+          "gross": "5.00",
+          "cost_removed": "1.85",
+          "quantity_after": "1",
+          "cost_after": "1.84",
+          "realized_gain": "3.09",
+          "average_cost": "1.8400"
+        },
+        {
+          "quantity_before": "1",
+          "cost_before": "1.84",
+          "gross": "3.00",
+          "cost_removed": "1.84",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "1.16",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "stock_dividend",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "3",
+          "price": "0.333333",
+          "fee": "0.01"
+        },
+        {
+          "trade_type": "stock_dividend",
+          "quantity": "1"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "1",
+          "price": "0.5"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "3",
+          "price": "0.5"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1.00",
+          "cost_removed": "0.00",
+          "quantity_after": "3",
+          "cost_after": "1.01",
+          "realized_gain": "0.00",
+          "average_cost": "0.3367"
+        },
+        {
+          "quantity_before": "3",
+          "cost_before": "1.01",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "4",
+          "cost_after": "1.01",
+          "realized_gain": "0.00",
+          "average_cost": "0.2525"
+        },
+        {
+          "quantity_before": "4",
+          "cost_before": "1.01",
+          "gross": "0.50",
+          "cost_removed": "0.25",
+          "quantity_after": "3",
+          "cost_after": "0.76",
+          "realized_gain": "0.25",
+          "average_cost": "0.2533"
+        },
+        {
+          "quantity_before": "3",
+          "cost_before": "0.76",
+          "gross": "1.50",
+          "cost_removed": "0.76",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "0.74",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "split_keep",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "200",
+          "cost_mode": "keep"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "50",
+          "price": "6"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "1000.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "100",
+          "cost_before": "1000.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "200",
+          "cost_after": "1000.00",
+          "realized_gain": "0.00",
+          "average_cost": "5.0000"
+        },
+        {
+          "quantity_before": "200",
+          "cost_before": "1000.00",
+          "gross": "300.00",
+          "cost_removed": "250.00",
+          "quantity_after": "150",
+          "cost_after": "750.00",
+          "realized_gain": "50.00",
+          "average_cost": "5.0000"
+        }
+      ]
+    },
+    {
+      "name": "set_cost_both_directions",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "10",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "10",
+          "cost_mode": "set_cost",
+          "cost_after": "80"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "10",
+          "cost_mode": "set_cost",
+          "cost_after": "110"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "100.00",
+          "cost_removed": "0.00",
+          "quantity_after": "10",
+          "cost_after": "100.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "10",
+          "cost_before": "100.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "10",
+          "cost_after": "80.00",
+          "realized_gain": "-20.00",
+          "average_cost": "8.0000"
+        },
+        {
+          "quantity_before": "10",
+          "cost_before": "80.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "10",
+          "cost_after": "110.00",
+          "realized_gain": "30.00",
+          "average_cost": "11.0000"
+        }
+      ]
+    },
+    {
+      "name": "write_off",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "10",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "0",
+          "cost_mode": "set_cost",
+          "cost_after": "0"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "100.00",
+          "cost_removed": "0.00",
+          "quantity_after": "10",
+          "cost_after": "100.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "10",
+          "cost_before": "100.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "-100.00",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "cash_return_below_and_above_cost",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "10",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "8",
+          "cost_mode": "cash_return",
+          "cash_amount": "30"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "0",
+          "cost_mode": "cash_return",
+          "cash_amount": "100"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "100.00",
+          "cost_removed": "0.00",
+          "quantity_after": "10",
+          "cost_after": "100.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "10",
+          "cost_before": "100.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "8",
+          "cost_after": "70.00",
+          "realized_gain": "0.00",
+          "average_cost": "8.7500"
+        },
+        {
+          "quantity_before": "8",
+          "cost_before": "70.00",
+          "gross": "0.00",
+          "cost_removed": "0.00",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "30.00",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "before_backdate",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "10"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "100",
+          "price": "20"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "1000.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "100",
+          "cost_before": "1000.00",
+          "gross": "2000.00",
+          "cost_removed": "1000.00",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "1000.00",
+          "average_cost": "0.0000"
+        }
+      ]
+    },
+    {
+      "name": "after_backdate",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "30"
+        },
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "10"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "100",
+          "price": "20"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "3000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "3000.00",
+          "realized_gain": "0.00",
+          "average_cost": "30.0000"
+        },
+        {
+          "quantity_before": "100",
+          "cost_before": "3000.00",
+          "gross": "1000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "200",
+          "cost_after": "4000.00",
+          "realized_gain": "0.00",
+          "average_cost": "20.0000"
+        },
+        {
+          "quantity_before": "200",
+          "cost_before": "4000.00",
+          "gross": "2000.00",
+          "cost_removed": "2000.00",
+          "quantity_after": "100",
+          "cost_after": "2000.00",
+          "realized_gain": "0.00",
+          "average_cost": "20.0000"
+        }
+      ]
+    },
+    {
+      "name": "same_day_different_sequence",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "10"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "100",
+          "price": "20"
+        },
+        {
+          "trade_type": "buy",
+          "quantity": "100",
+          "price": "30"
+        }
+      ],
+      "expected": [
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "1000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "1000.00",
+          "realized_gain": "0.00",
+          "average_cost": "10.0000"
+        },
+        {
+          "quantity_before": "100",
+          "cost_before": "1000.00",
+          "gross": "2000.00",
+          "cost_removed": "1000.00",
+          "quantity_after": "0",
+          "cost_after": "0.00",
+          "realized_gain": "1000.00",
+          "average_cost": "0.0000"
+        },
+        {
+          "quantity_before": "0",
+          "cost_before": "0.00",
+          "gross": "3000.00",
+          "cost_removed": "0.00",
+          "quantity_after": "100",
+          "cost_after": "3000.00",
+          "realized_gain": "0.00",
+          "average_cost": "30.0000"
+        }
+      ]
+    }
+  ],
+  "error_cases": [
+    {
+      "name": "insufficient",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "1",
+          "price": "10"
+        },
+        {
+          "trade_type": "sell",
+          "quantity": "2",
+          "price": "20"
+        }
+      ],
+      "error": "insufficient_shares"
+    },
+    {
+      "name": "keep_zero",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "10",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "0",
+          "cost_mode": "keep"
+        }
+      ],
+      "error": "adjust_cost_required"
+    },
+    {
+      "name": "zero_with_cost",
+      "input": [
+        {
+          "trade_type": "buy",
+          "quantity": "10",
+          "price": "10"
+        },
+        {
+          "trade_type": "adjust",
+          "quantity_after": "0",
+          "cost_mode": "set_cost",
+          "cost_after": "1"
+        }
+      ],
+      "error": "adjust_cost_required"
+    }
+  ]
+}

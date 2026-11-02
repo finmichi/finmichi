@@ -1,0 +1,108 @@
+name: finmichi-dev
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 256
+  logging: *logging
+services:
+  app:
+    <<: *hardening
+    build:
+      context: ..
+    image: finmichi-dev:0.0.1
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      TZ: Asia/Taipei
+      DATABASE_URL_FILE: /run/secrets/database-url
+      TLS_KEY_FILE: /run/secrets/tls-key
+      TLS_CERT_FILE: /run/secrets/tls-cert
+      MOCK_OIDC_INTERNAL_URL: http://mock-oidc:8080
+    ports: ['127.0.0.1:8443:8080']
+    volumes:
+      - ./local/database-url:/run/secrets/database-url:ro,Z
+      - ./local/tls-key:/run/secrets/tls-key:ro,Z
+      - ./local/tls-cert:/run/secrets/tls-cert:ro,Z
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    depends_on:
+      postgres: { condition: service_healthy }
+      mock-oidc: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', '/nodejs/bin/node', '/app/healthcheck.mjs']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  worker:
+    <<: *hardening
+    restart: unless-stopped
+    build:
+      context: ..
+      target: worker
+    image: finmichi-worker-dev:0.0.1
+    environment:
+      NODE_ENV: development
+      TZ: Asia/Taipei
+      MARKET_DATA_ENABLED: ${MARKET_DATA_ENABLED:-false}
+      DATABASE_URL_FILE: /run/secrets/database-url
+    volumes:
+      - ./local/worker-database-url:/run/secrets/database-url:ro,Z
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', '/nodejs/bin/node', '/app/healthcheck.mjs']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+  postgres:
+    <<: *hardening
+    image: finmichi-postgres:dev
+    build:
+      context: ..
+      dockerfile: deploy/postgres.Dockerfile
+    user: postgres
+    environment:
+      POSTGRES_USER: finmichi
+      POSTGRES_DB: finmichi
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+      TZ: Asia/Taipei
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./local/postgres-password:/run/secrets/postgres-password:ro,Z
+    tmpfs: [/tmp, /var/run/postgresql]
+    mem_limit: 512m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U finmichi -d finmichi']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  mock-oidc:
+    <<: *hardening
+    image: finmichi-mock-oidc:6.0.7
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.mock-oidc
+    environment:
+      TZ: Asia/Taipei
+      JSON_CONFIG: '{"interactiveLogin":true}'
+    ports: ['127.0.0.1:8081:8080']
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    healthcheck:
+      test: ['CMD', '/healthcheck']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+volumes:
+  postgres-data:

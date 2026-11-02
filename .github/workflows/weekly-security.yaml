@@ -1,0 +1,93 @@
+name: Weekly image risk reports
+on:
+  schedule:
+    - cron: '23 2 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { ref: main, persist-credentials: false }
+      - name: Build current main
+        run: docker build --target runtime -t finmichi:weekly .
+      - name: Build current main worker
+        run: docker build --target worker -t finmichi-worker:weekly .
+      - name: Build PostgreSQL main image
+        run: docker build -f deploy/postgres.Dockerfile -t finmichi-postgres:weekly .
+      - name: Main image non-blocking report
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: finmichi:weekly
+          format: json
+          output: weekly-main.json
+          exit-code: '0'
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+      - name: Worker non-blocking report
+        if: always()
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: finmichi-worker:weekly
+          format: json
+          output: weekly-worker.json
+          exit-code: '0'
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+      - name: PostgreSQL non-blocking report
+        if: always()
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: finmichi-postgres:weekly
+          format: json
+          output: weekly-postgres.json
+          exit-code: '0'
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+      - name: Mock OIDC non-blocking report
+        if: always()
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0
+        with:
+          image-ref: ghcr.io/navikt/mock-oauth2-server:6.0.7
+          format: json
+          output: weekly-mock-oidc.json
+          exit-code: '0'
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+      - name: Convert full reports
+        if: always()
+        run: |
+          for report in weekly-*.json; do
+            trivy convert --format table --output "${report%.json}.txt" "$report"
+            cat "${report%.json}.txt"
+          done
+      - name: Upload weekly reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: weekly-risk-${{ github.run_id }}
+          path: |
+            weekly-*.json
+            weekly-*.txt
+          if-no-files-found: error
+  history-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: { ref: main, fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22 }
+      - run: sh scripts/security/install-gitleaks.sh
+      - name: Full history secret report (no history rewriting)
+        env:
+          SECURITY_REPORT: weekly-history-secrets.json
+        run: node scripts/security/gitleaks.mjs --history --report-only
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: weekly-history-secrets-${{ github.run_id }}
+          path: weekly-history-secrets.json
+          retention-days: 7
+          if-no-files-found: error

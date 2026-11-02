@@ -1,0 +1,86 @@
+[
+  {
+    "path": "apps/server/src/audit.db.test.ts",
+    "sha256": "699ed720c8d450da013b53d6cdc8f5e030f021cadd7ba3aab032e5e465f80332",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "apps/server/src/finance.db.test.ts",
+    "sha256": "bfb518f0753e106aec4bd780642113a8ce1e1f818f373380992ee6af7a05cf8a",
+    "rules": ["carrier_number"],
+    "reason": "Audit negative assertion regex, not a carrier identifier."
+  },
+  {
+    "path": "apps/server/src/market.db.test.ts",
+    "sha256": "36a8599a7225251c774bd75f427bec0e91eaf3fd3e755435dd45ebf3561e6cc7",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "apps/web/src/finance-payments.test.ts",
+    "sha256": "c0e0a371b784dbf58bb2008debd6d9bffeed01c974801fc1aabe06113b14ea13",
+    "rules": ["payment_card"],
+    "reason": "Synthetic UUID or deliberately generated Luhn negative test."
+  },
+  {
+    "path": "docs/p3-market-data.md",
+    "sha256": "f7f4ab0db73387560898a31fb9103e56bd6900e5723a37f265bf18c1fd081370",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "packages/core/src/market.test.ts",
+    "sha256": "0859546c87cd8e86604b2ad3ea618c1132c294ac61ed3a3eb23d4f83c1dec711",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "packages/core/src/market.test.ts",
+    "sha256": "8db04af5a18a94ae04d1f04ecc547c8b8aa002c1dd50dd7f4f5db15ec45ec80e",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "packages/core/src/market.test.ts",
+    "sha256": "05273954a8ab2b40f91afc4ad062d120e018851591431b6b7e0fcc9734097234",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "scripts/security/content.test.mjs",
+    "sha256": "8239ebd0d5d33ec4156229802215e6fcbd1146cd5366f1bfa21ff60fc2fca53a",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "scripts/security/content.test.mjs",
+    "sha256": "5a44fb5243e6448a799f56af33108aa03ea04b68d0c6d8c268478239fe360a76",
+    "rules": ["email"],
+    "reason": "Synthetic parser filename or deliberately invalid URL/email test; no mailbox data."
+  },
+  {
+    "path": "scripts/security/content.test.mjs",
+    "sha256": "6cf7c54daf475c340eb7d03f53f44512f6ca4eee6e6fdca41a6866b636f65b64",
+    "rules": ["payment_card"],
+    "reason": "Synthetic UUID or deliberately generated Luhn negative test."
+  },
+  {
+    "path": "CODE_OF_CONDUCT.md",
+    "sha256": "d33af9009f63457eab3ca5e39f780d548a0ea5d7091887ea53b5ffd89a02c15c",
+    "rules": ["email"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  },
+  {
+    "path": "CODE_OF_CONDUCT.zh-TW.md",
+    "sha256": "c03418051d6baa74ccc113daa1756b3beeb16aa290756219e04055c6924c0182",
+    "rules": ["email"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  },
+  {
+    "path": "TRADEMARK.md",
+    "sha256": "1db191c745ce76028bcf13afb10fb8de72969f1a708bd96cec631f73261e3100",
+    "rules": ["email"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  }
+]

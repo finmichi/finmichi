@@ -1,0 +1,6 @@
+# Optional override; use only with compose.dev.yaml and an unused DEV_SUBNET.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DEV_SUBNET:?Set an unused IPv4 CIDR for this isolated dev project}

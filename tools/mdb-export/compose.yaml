@@ -1,0 +1,17 @@
+services:
+  mdb-export:
+    build:
+      context: ../..
+      dockerfile: tools/mdb-export/Dockerfile
+    user: '${EXPORT_UID:-65532}:${EXPORT_GID:-65532}'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    network_mode: none
+    tmpfs: [/tmp]
+    volumes:
+      - '${MDB_SOURCE:?Set a private source path}:/data/source.mdb:ro,Z'
+      - '${MDB_OUTPUT:?Set a private output path}:/output:Z'
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: '3' }

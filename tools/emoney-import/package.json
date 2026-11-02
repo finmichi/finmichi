@@ -1,0 +1,17 @@
+{
+  "name": "@finmichi/emoney-import",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@finmichi/core": "workspace:*",
+    "@finmichi/db": "workspace:*",
+    "csv-parse": "7.0.3",
+    "zod": "^4.1.12"
+  },
+  "license": "AGPL-3.0-only"
+}

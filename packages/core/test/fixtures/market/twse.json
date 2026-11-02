@@ -1,0 +1,16 @@
+[
+  {
+    "Date": "1151022",
+    "Code": "9999",
+    "Name": "合成上市甲",
+    "ClosingPrice": "20.125000",
+    "MonthlyAveragePrice": "20.0"
+  },
+  {
+    "Date": "1151022",
+    "Code": "00999A",
+    "Name": "合成ETF",
+    "ClosingPrice": "",
+    "MonthlyAveragePrice": "99.0"
+  }
+]

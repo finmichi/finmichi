@@ -1,0 +1,93 @@
+name: finmichi
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 512m
+services:
+  app:
+    stop_grace_period: 30s
+    <<: *hardening
+    pull_policy: never
+    image: ghcr.io/finmichi/finmichi:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Taipei
+      APP_VERSION: ${IMAGE_TAG:?IMAGE_TAG required}
+      PUBLIC_URL: ${PUBLIC_URL:?PUBLIC_URL required}
+      TRUST_PROXY: '1'
+      OIDC_ISSUER: ${OIDC_ISSUER:?OIDC_ISSUER required}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?OIDC_CLIENT_ID required}
+      ALLOWED_SUBJECTS: ${ALLOWED_SUBJECTS:?ALLOWED_SUBJECTS required}
+      OIDC_SUBJECT_DISCOVERY: ${OIDC_SUBJECT_DISCOVERY:-false}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET required}
+      DATABASE_URL: postgres://finmichi:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}@postgres:5432/finmichi
+      MCP_DRAFT_MAX_BASE_AMOUNT: ${MCP_DRAFT_MAX_BASE_AMOUNT:-100000}
+    extra_hosts:
+      [
+        '${OIDC_HAIRPIN_HOST:?OIDC_HAIRPIN_HOST required}:${NAS_LAN_IP:?NAS_LAN_IP required}',
+      ]
+    ports: ['127.0.0.1:8080:8080']
+    tmpfs: [/tmp]
+    # Distinct priorities avoid Compose 2.19.x equal-priority network loss.
+    networks:
+      default: { priority: 100 }
+      database: { priority: 0 }
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, /nodejs/bin/node, /app/healthcheck.mjs]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+  worker:
+    stop_grace_period: 30s
+    <<: *hardening
+    pull_policy: never
+    image: ghcr.io/finmichi/finmichi-worker:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Taipei
+      DATABASE_URL: postgres://finmichi:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}@postgres:5432/finmichi
+      MARKET_DATA_ENABLED: ${MARKET_DATA_ENABLED:-false}
+    tmpfs: [/tmp]
+    # Distinct priorities avoid Compose 2.19.x equal-priority network loss.
+    networks:
+      default: { priority: 100 }
+      database: { priority: 0 }
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, /nodejs/bin/node, /app/healthcheck.mjs]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  postgres:
+    stop_grace_period: 60s
+    <<: *hardening
+    pull_policy: never
+    image: ghcr.io/finmichi/finmichi-postgres:${IMAGE_TAG:?IMAGE_TAG required}
+    user: postgres
+    environment:
+      TZ: Asia/Taipei
+      POSTGRES_USER: finmichi
+      POSTGRES_DB: finmichi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    tmpfs: [/tmp, /var/run/postgresql]
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U finmichi -d finmichi]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+networks:
+  database:
+    internal: true
+volumes:
+  postgres-data:
+    name: finmichi-db

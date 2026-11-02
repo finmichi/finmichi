@@ -1,0 +1,123 @@
+{
+  "name": "@finmichi/core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./recurring-schemas": {
+      "types": "./dist/recurring-schemas.d.ts",
+      "default": "./dist/recurring-schemas.js"
+    },
+    "./recurring-calendar": {
+      "types": "./dist/recurring-calendar.d.ts",
+      "default": "./dist/recurring-calendar.js"
+    },
+    "./catalog-schemas": {
+      "types": "./dist/catalog-schemas.d.ts",
+      "default": "./dist/catalog-schemas.js"
+    },
+    "./transaction-schemas": {
+      "types": "./dist/transaction-schemas.d.ts",
+      "default": "./dist/transaction-schemas.js"
+    },
+    "./money": {
+      "types": "./dist/money.d.ts",
+      "default": "./dist/money.js"
+    },
+    "./query-schemas": {
+      "types": "./dist/query-schemas.d.ts",
+      "default": "./dist/query-schemas.js"
+    },
+    "./query-format": {
+      "types": "./dist/query-format.d.ts",
+      "default": "./dist/query-format.js"
+    },
+    "./report-schemas": {
+      "types": "./dist/report-schemas.d.ts",
+      "default": "./dist/report-schemas.js"
+    },
+    "./life2023-schemas": {
+      "types": "./dist/life2023-schemas.d.ts",
+      "default": "./dist/life2023-schemas.js"
+    },
+    "./backup-schemas": {
+      "types": "./dist/backup-schemas.d.ts",
+      "default": "./dist/backup-schemas.js"
+    },
+    "./audit-schemas": {
+      "types": "./dist/audit-schemas.d.ts",
+      "default": "./dist/audit-schemas.js"
+    },
+    "./budget-schemas": {
+      "types": "./dist/budget-schemas.d.ts",
+      "default": "./dist/budget-schemas.js"
+    },
+    "./finance-schemas": {
+      "types": "./dist/finance-schemas.d.ts",
+      "default": "./dist/finance-schemas.js"
+    },
+    "./finance-calendar": {
+      "types": "./dist/finance-calendar.d.ts",
+      "default": "./dist/finance-calendar.js"
+    },
+    "./cash-forecast-schemas": {
+      "types": "./dist/cash-forecast-schemas.d.ts",
+      "default": "./dist/cash-forecast-schemas.js"
+    },
+    "./draft-schemas": {
+      "types": "./dist/draft-schemas.d.ts",
+      "default": "./dist/draft-schemas.js"
+    },
+    "./market-schemas": {
+      "types": "./dist/market-schemas.d.ts",
+      "default": "./dist/market-schemas.js"
+    },
+    "./securities-schemas": {
+      "types": "./dist/securities-schemas.d.ts",
+      "default": "./dist/securities-schemas.js"
+    },
+    "./dividend-schemas": {
+      "types": "./dist/dividend-schemas.d.ts",
+      "default": "./dist/dividend-schemas.js"
+    },
+    "./securities-math": {
+      "types": "./dist/securities-math.d.ts",
+      "default": "./dist/securities-math.js"
+    },
+    "./deposit-schemas": {
+      "types": "./dist/deposit-schemas.d.ts",
+      "default": "./dist/deposit-schemas.js"
+    },
+    "./deposit-math": {
+      "types": "./dist/deposit-math.d.ts",
+      "default": "./dist/deposit-math.js"
+    },
+    "./reminder-schemas": {
+      "types": "./dist/reminder-schemas.d.ts",
+      "default": "./dist/reminder-schemas.js"
+    },
+    "./card-fx": {
+      "types": "./dist/card-fx.d.ts",
+      "default": "./dist/card-fx.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@finmichi/db": "workspace:*",
+    "csv-parse": "7.0.3",
+    "iconv-lite": "0.7.3",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2"
+  },
+  "license": "AGPL-3.0-only"
+}

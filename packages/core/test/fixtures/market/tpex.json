@@ -1,0 +1,15 @@
+[
+  {
+    "Date": "1151022",
+    "SecuritiesCompanyCode": "9999A",
+    "CompanyName": "合成上櫃甲",
+    "Close": "10.50",
+    "Change": "+0.10 "
+  },
+  {
+    "Date": "1151022",
+    "SecuritiesCompanyCode": "99990",
+    "CompanyName": "合成上櫃乙",
+    "Close": " ---"
+  }
+]

@@ -1,0 +1,47 @@
+# dev only; real OIDC configuration and secrets are supplied locally.
+name: finmichi-staging
+services:
+  app:
+    image: ghcr.io/finmichi/finmichi:${IMAGE_TAG:?Set IMAGE_TAG}
+    env_file: .env.staging
+    ports: ['127.0.0.1:8080:8080']
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 512m
+    volumes:
+      - ${SECRET_DIR:?Set SECRET_DIR}:/run/secrets:ro,Z
+    depends_on:
+      postgres: { condition: service_healthy }
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+  postgres:
+    image: ghcr.io/finmichi/finmichi-postgres:${IMAGE_TAG:?Set IMAGE_TAG}
+    user: postgres
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 512m
+    environment:
+      POSTGRES_USER: finmichi
+      POSTGRES_DB: finmichi
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+      TZ: Asia/Taipei
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ${SECRET_DIR:?Set SECRET_DIR}/postgres-password:/run/secrets/postgres-password:ro,Z
+    tmpfs: [/tmp, /var/run/postgresql]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U finmichi -d finmichi']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+volumes:
+  postgres-data:

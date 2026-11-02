@@ -1,0 +1,92 @@
+name: finmichi
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 256
+  mem_limit: 512m
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: '3' }
+services:
+  app:
+    stop_grace_period: 30s
+    <<: *hardening
+    image: ghcr.io/finmichi/finmichi:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Taipei
+      APP_VERSION: ${IMAGE_TAG:?IMAGE_TAG required}
+      PUBLIC_URL: ${PUBLIC_URL:?PUBLIC_URL required}
+      TRUST_PROXY: '1'
+      OIDC_ISSUER: ${OIDC_ISSUER:?OIDC_ISSUER required}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?OIDC_CLIENT_ID required}
+      ALLOWED_SUBJECTS: ${ALLOWED_SUBJECTS:?ALLOWED_SUBJECTS required}
+      OIDC_SUBJECT_DISCOVERY: ${OIDC_SUBJECT_DISCOVERY:-false}
+      OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc-client-secret
+      DATABASE_URL_FILE: /run/secrets/database-url
+      MCP_DRAFT_MAX_BASE_AMOUNT: ${MCP_DRAFT_MAX_BASE_AMOUNT:-100000}
+    extra_hosts:
+      [
+        '${OIDC_HAIRPIN_HOST:?OIDC_HAIRPIN_HOST required}:${NAS_LAN_IP:?NAS_LAN_IP required}',
+      ]
+    ports: ['127.0.0.1:8080:8080']
+    volumes:
+      - ${NAS_ROOT:?NAS_ROOT required}/secrets/database-url:/run/secrets/database-url:ro
+      # For a public OIDC client create an empty file; no secret is sent.
+      - ${NAS_ROOT:?NAS_ROOT required}/secrets/oidc-client-secret:/run/secrets/oidc-client-secret:ro
+    tmpfs: [/tmp]
+    networks: [default, database]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, /nodejs/bin/node, /app/healthcheck.mjs]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+  worker:
+    stop_grace_period: 30s
+    <<: *hardening
+    image: ghcr.io/finmichi/finmichi-worker:${IMAGE_TAG:?IMAGE_TAG required}
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Taipei
+      DATABASE_URL_FILE: /run/secrets/worker-database-url
+      MARKET_DATA_ENABLED: ${MARKET_DATA_ENABLED:-false}
+    volumes:
+      - ${NAS_ROOT:?NAS_ROOT required}/secrets/worker-database-url:/run/secrets/worker-database-url:ro
+    tmpfs: [/tmp]
+    networks: [default, database]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, /nodejs/bin/node, /app/healthcheck.mjs]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+  postgres:
+    stop_grace_period: 60s
+    <<: *hardening
+    image: ghcr.io/finmichi/finmichi-postgres:${IMAGE_TAG:?IMAGE_TAG required}
+    user: postgres
+    environment:
+      TZ: Asia/Taipei
+      POSTGRES_USER: finmichi
+      POSTGRES_DB: finmichi
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - ${NAS_ROOT:?NAS_ROOT required}/postgres:/var/lib/postgresql/data
+      - ${NAS_ROOT:?NAS_ROOT required}/secrets/postgres-password:/run/secrets/postgres-password:ro
+    tmpfs: [/tmp, /var/run/postgresql]
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U finmichi -d finmichi]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+networks:
+  database:
+    internal: true

@@ -1,0 +1,16 @@
+{
+  "securities_item": "現金",
+  "settlement_item": "銀行",
+  "fee_item": { "create": "合成投資費用" },
+  "gain_item": { "create": "合成投資損益" },
+  "security_markets": { "00999": "TWSE", "0099B": "TPEx" },
+  "deposit_items": [
+    {
+      "prefix": "合成人-合成銀行-",
+      "item": { "create": "合成定存" },
+      "payout_account": "銀行"
+    }
+  ],
+  "deposit_interest_item": "薪資",
+  "deposit_defaults": { "payout": "at_maturity", "auto_renew": true }
+}

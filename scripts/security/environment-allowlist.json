@@ -1,0 +1,182 @@
+[
+  {
+    "path": ".github/workflows/release.yaml",
+    "sha256": "5df0846a1ace475f88ed9dd11721108658fea10e92c0d1d680e97a6bbadd9b90",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": ".github/workflows/release.yaml",
+    "sha256": "54b8b77f2fda46dc32ed3b6942e6f187dca3faa4a5c262bb120ca81e0f89360f",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": ".github/workflows/release.yaml",
+    "sha256": "a3714cb2934b8e9e85f41c92c449464bb259aa310f7261a733e52f3a54c6972f",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": ".github/workflows/release.yaml",
+    "sha256": "e77fcbe813afbd10a556aa0ed6bfd3b5c9b3b9bba37e471ea509a45a43ac22ff",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": ".github/workflows/release.yaml",
+    "sha256": "823c3ed9535551c51d83fb3e0bf1d5a60d495b3f5aff6e8f2d59969a5e75d30d",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/RUNBOOK-nas.md",
+    "sha256": "ae7377cf1fe24f234149b1205f618674d12c2dbfe1d4670e569bb565a8cfff8a",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/RUNBOOK-nas.md",
+    "sha256": "61a979cf1eff1f3d3cf6e754fa82ddd5b5682c568059cecfc9e934e4ccfe3f14",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/RUNBOOK-nas.md",
+    "sha256": "11fe5a0f37fd6e1a8706592f5b2511a7699653d5260ddd0ab045ee34c1682d93",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/RUNBOOK.md",
+    "sha256": "8babf784db483f9be179576e8741586227938ccff8f9c8c84512e2c26dffab37",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/compose.nas.yaml",
+    "sha256": "7a1e649441aa1c786bf71767d85295a366e11792d741dbb3ca3aaa5fcbc9790b",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/compose.nas.yaml",
+    "sha256": "078174b17514ef604123188e410bd16bdfca6534a483003e3217a63a188128fb",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/compose.nas.yaml",
+    "sha256": "daf9f729942d5f862507ff2d0020b6a93a04b6d1cd7350bbaccb1fd1cda5ca21",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/compose.staging.yaml",
+    "sha256": "79e3a42156180ad118c2757dbf4116bb4f46448c6ac02f379b61ed55dc2ee3c9",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/compose.staging.yaml",
+    "sha256": "bc409e7d56690230bb57d264413445dd4baf02595c59d94bce58012f3b3ae7a1",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/container-manager/README.md",
+    "sha256": "8bb1396a11ee40ce17eaab95c0ddb634076079abe609faaf903b238292a53799",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/container-manager/compose.yaml",
+    "sha256": "7a1e649441aa1c786bf71767d85295a366e11792d741dbb3ca3aaa5fcbc9790b",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/container-manager/compose.yaml",
+    "sha256": "078174b17514ef604123188e410bd16bdfca6534a483003e3217a63a188128fb",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/container-manager/compose.yaml",
+    "sha256": "daf9f729942d5f862507ff2d0020b6a93a04b6d1cd7350bbaccb1fd1cda5ca21",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "deploy/postgres.Dockerfile",
+    "sha256": "aa1b4bcc422040f616077f62ebb24147a8ed93f2770b5da85be998c85b851bd0",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "docs/adr/0003-postgres-image.md",
+    "sha256": "de0a5acd1ca1d462f843684786c25f7c2e36478a62c0b628fd9e0581aa3b17be",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/backup-errors-smoke.mjs",
+    "sha256": "8df1f40ec1650e72618eb94778fb7ca1333e1d16b3650b2356a3ea386899cc7f",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/container-manager-smoke.mjs",
+    "sha256": "1a9d807d7a7d01e147530b27351292bdd993ed52b1f90b179d1bce10114863b6",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/container-manager-smoke.mjs",
+    "sha256": "3aa6cb369066023df660eefb3d57467b001cb45ade771f1a97142608aceeb7a3",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/export-image-asset.sh",
+    "sha256": "210b54d9234e3c1eec62c36f7ce1f0b264c02c69562a888d62c9f4f65826c939",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/legacy-name-allowlist.json",
+    "sha256": "fcb97c16474f8878196585f5566ba99911feacf4f4a30fd776cd915ff7710414",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "scripts/nas-smoke.mjs",
+    "sha256": "ef7f9632e0ead7c0d1a335bdac6ac7d90a3e229a8eecbb40b6786f69c6399250",
+    "rules": ["environment_identifier"],
+    "reason": "Exact approved project repository or GHCR reference."
+  },
+  {
+    "path": "CODE_OF_CONDUCT.md",
+    "sha256": "d33af9009f63457eab3ca5e39f780d548a0ea5d7091887ea53b5ffd89a02c15c",
+    "rules": ["environment_identifier"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  },
+  {
+    "path": "CODE_OF_CONDUCT.zh-TW.md",
+    "sha256": "c03418051d6baa74ccc113daa1756b3beeb16aa290756219e04055c6924c0182",
+    "rules": ["environment_identifier"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  },
+  {
+    "path": "TRADEMARK.md",
+    "sha256": "1db191c745ce76028bcf13afb10fb8de72969f1a708bd96cec631f73261e3100",
+    "rules": ["environment_identifier"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  },
+  {
+    "path": "AUTHORS",
+    "sha256": "d62b20aef5490d926cc0d1bf007d50909998462954ddaa8968907c1283ed9e3b",
+    "rules": ["environment_identifier"],
+    "reason": "Maintainer explicitly approved publishing this contact or contributor attribution."
+  }
+]

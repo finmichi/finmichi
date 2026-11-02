@@ -1,0 +1,31 @@
+-- ADR-0012 rev1.7. No files or tax meaning are stored; codes are user-owned labels.
+ALTER TABLE security_trades ADD CONSTRAINT security_trade_ledger_key UNIQUE(id,ledger_id);
+CREATE TABLE income_codes(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ledger_id uuid NOT NULL REFERENCES ledgers(id),code text NOT NULL CHECK(length(code) BETWEEN 1 AND 100),label text NOT NULL CHECK(length(label) BETWEEN 1 AND 200),income_item_id uuid,UNIQUE(id,ledger_id),UNIQUE(ledger_id,code),FOREIGN KEY(income_item_id,ledger_id) REFERENCES items(id,ledger_id));
+CREATE TABLE dividends(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ledger_id uuid NOT NULL REFERENCES ledgers(id),security_id uuid NOT NULL,
+ ex_date date NOT NULL,pay_date date NOT NULL CHECK(ex_date<=pay_date),per_share numeric(20,8) NOT NULL CHECK(per_share>=0),shares numeric NOT NULL CHECK(shares>=0 AND shares=trunc(shares)),
+ gross_amount numeric NOT NULL CHECK(gross_amount>=0 AND gross_amount=round(gross_amount,2)),withholding_tax numeric NOT NULL CHECK(withholding_tax>=0 AND withholding_tax=round(withholding_tax,2)),nhi_premium numeric NOT NULL CHECK(nhi_premium>=0 AND nhi_premium=round(nhi_premium,2)),fee numeric NOT NULL CHECK(fee>=0 AND fee=round(fee,2)),net_amount numeric NOT NULL CHECK(net_amount>=0 AND net_amount=round(net_amount,2)),stock_shares numeric NOT NULL CHECK(stock_shares>=0 AND stock_shares=trunc(stock_shares)),
+ CHECK(net_amount=gross_amount-withholding_tax-nhi_premium-fee),CHECK(gross_amount>0 OR stock_shares>0),
+ source_document jsonb CHECK(source_document IS NULL OR (jsonb_typeof(source_document)='object' AND source_document ?& ARRAY['filename','sha256','page'] AND source_document->>'sha256' ~ '^[a-f0-9]{64}$' AND (source_document->>'page')::integer>0 AND length(source_document->>'filename') BETWEEN 1 AND 255 AND source_document-'filename'-'sha256'-'page'='{}'::jsonb)),note text NOT NULL DEFAULT '' CHECK(length(note)<=2000),
+ transaction_id uuid UNIQUE,stock_trade_id uuid UNIQUE,settlement_item_id uuid,default_income_item_id uuid,tax_item_id uuid,expense_item_id uuid,
+ CHECK((gross_amount=0)=(transaction_id IS NULL)),CHECK((stock_shares=0)=(stock_trade_id IS NULL)),UNIQUE(id,ledger_id),
+ FOREIGN KEY(security_id,ledger_id) REFERENCES securities(id,ledger_id),FOREIGN KEY(transaction_id,ledger_id) REFERENCES transactions(id,ledger_id) DEFERRABLE INITIALLY DEFERRED,
+ FOREIGN KEY(stock_trade_id,ledger_id) REFERENCES security_trades(id,ledger_id) DEFERRABLE INITIALLY DEFERRED,
+ FOREIGN KEY(settlement_item_id,ledger_id) REFERENCES items(id,ledger_id),FOREIGN KEY(default_income_item_id,ledger_id) REFERENCES items(id,ledger_id),FOREIGN KEY(tax_item_id,ledger_id) REFERENCES items(id,ledger_id),FOREIGN KEY(expense_item_id,ledger_id) REFERENCES items(id,ledger_id)
+);
+CREATE TABLE dividend_components(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ledger_id uuid NOT NULL,dividend_id uuid NOT NULL,code text NOT NULL CHECK(length(code) BETWEEN 1 AND 100),label text NOT NULL CHECK(length(label) BETWEEN 1 AND 200),amount numeric NOT NULL CHECK(amount>=0 AND amount=round(amount,2)),taxable boolean NOT NULL,income_item_id uuid NOT NULL,
+ FOREIGN KEY(dividend_id,ledger_id) REFERENCES dividends(id,ledger_id) ON DELETE CASCADE,FOREIGN KEY(income_item_id,ledger_id) REFERENCES items(id,ledger_id));
+CREATE INDEX dividend_period ON dividends(ledger_id,pay_date,id);
+CREATE FUNCTION enforce_dividend_amounts() RETURNS trigger LANGUAGE plpgsql AS $$ DECLARE d dividends; n integer; total numeric; BEGIN
+ IF TG_TABLE_NAME='dividend_components' THEN SELECT * INTO d FROM dividends WHERE id=coalesce(NEW.dividend_id,OLD.dividend_id); ELSE SELECT * INTO d FROM dividends WHERE id=coalesce(NEW.id,OLD.id); END IF;
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ SELECT count(*),coalesce(sum(amount),0) INTO n,total FROM dividend_components WHERE dividend_id=d.id;
+ IF total<>d.gross_amount OR (d.gross_amount=0 AND n<>0) OR (d.gross_amount>0 AND n=0) THEN RAISE EXCEPTION 'dividend_amount_mismatch' USING ERRCODE='23514';END IF;
+ IF (SELECT base_currency FROM ledgers WHERE id=d.ledger_id)<>'TWD' THEN RAISE EXCEPTION 'securities_require_twd_ledger' USING ERRCODE='23514';END IF;
+ IF d.transaction_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM transactions WHERE id=d.transaction_id AND ledger_id=d.ledger_id AND occurred_on=d.pay_date) THEN RAISE EXCEPTION 'dividend_transaction_invalid' USING ERRCODE='23514';END IF;
+ IF d.stock_trade_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM security_trades WHERE id=d.stock_trade_id AND ledger_id=d.ledger_id AND security_id=d.security_id AND trade_type='stock_dividend' AND trade_date=d.pay_date AND quantity=d.stock_shares) THEN RAISE EXCEPTION 'dividend_trade_invalid' USING ERRCODE='23514';END IF;
+ RETURN NULL; END $$;
+CREATE CONSTRAINT TRIGGER dividend_integrity AFTER INSERT OR UPDATE ON dividends DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION enforce_dividend_amounts();
+CREATE CONSTRAINT TRIGGER dividend_component_integrity AFTER INSERT OR UPDATE OR DELETE ON dividend_components DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION enforce_dividend_amounts();
+ALTER TABLE audit_logs DROP CONSTRAINT audit_logs_action_allowed;
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_allowed CHECK(action IN ('login','logout','ledger.create','ledger.update','ledger.lock','ledger.unlock','ledger.delete','item.create','item.update','payees.create','payees.update','payees.delete','projects.create','projects.update','projects.delete','memo_templates.create','memo_templates.update','memo_templates.delete','transaction.create','transaction.update','transaction.delete','life2023.import','emoney.import','backup.restore','backup.download','pat.create','pat.revoke','mcp.call','market.fx_upload','draft.create','draft.approve','draft.reject','draft.expire','recurring.create','recurring.update','recurring.delete','recurring.generate','recurring.post','recurring.skip','budget.update','budget.delete','card.update','card.delete','loan.update','loan.delete','security.create','security.update','security.delete','security.price_update','security.price_delete','security.trade_create','security.trade_update','security.trade_delete','security.recalculate','dividend.create','dividend.update','dividend.delete','income_code.create','income_code.update','income_code.delete','income_code.initialize'));

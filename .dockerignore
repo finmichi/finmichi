@@ -1,0 +1,16 @@
+.git
+**/node_modules
+**/dist
+.env*
+**/.env*
+deploy/local
+coverage
+*.mdb
+*.xlsx
+*.dump
+*.pem
+*.key
+trivy-*.json
+trivy-*.txt
+weekly-*.json
+weekly-*.txt
