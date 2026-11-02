@@ -213,3 +213,48 @@ it('cash forecast URL restores only approved conditions and rejects unknown view
     ),
   ).not.toContain('accounts=');
 });
+
+it('restores only valid project filters on income/category reports without widening unrelated report criteria', async () => {
+  const id = 'abcdefab-cdef-4abc-8def-abcdefabcdef';
+  const income = incomeFiltersFromLocation(
+    '/reports/income-summary?project_id=' + id + '&unknown=1',
+    '2026-10-31',
+  );
+  expect(income.project_id).toBe(id);
+  expect(incomeFiltersUrl(income)).toContain('project_id=' + id);
+  const category = categoryFiltersFromLocation(
+    '/reports/category-statistics?project_id=' + id,
+    '2026-10-31',
+  );
+  expect(category.project_id).toBe(id);
+  expect(categoryFiltersUrl(category)).toContain('project_id=' + id);
+  expect(
+    incomeFiltersFromLocation(
+      '/reports/income-summary?project_id=bogus',
+      '2026-10-31',
+    ),
+  ).not.toHaveProperty('project_id');
+  const { projectFiltersFromLocation, projectFiltersUrl } =
+    await import('./report-state');
+  const p = projectFiltersFromLocation(
+    '/reports/projects?date_from=2026-09-01&date_to=2026-10-31&include_archived=true&project=' +
+      id +
+      '&owner_id=ignored',
+    '2026-11-02',
+  );
+  expect(p).toEqual({
+    date_from: '2026-09-01',
+    date_to: '2026-10-31',
+    include_archived: 'true',
+    project: id,
+  });
+  expect(projectFiltersUrl({ ...p, owner_id: 'ignored' })).not.toContain(
+    'owner_id',
+  );
+});
+
+it('recognizes the project report route and its page title', async () => {
+  const { isKnownRoute, routeTitle } = await import('./routes');
+  expect(isKnownRoute('/reports/projects')).toBe(true);
+  expect(routeTitle('/reports/projects')).toBe('專案分析');
+});

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useRef, lazy, Suspense } from 'react';
 import { LoadingState } from './design/feedback';
+const ProjectAnalysis = lazy(() =>
+  import('./project-report').then((m) => ({ default: m.ProjectAnalysis })),
+);
 const ProfitLoss = lazy(() =>
   import('./extended-reports').then((m) => ({ default: m.ProfitLoss })),
 );
@@ -21,6 +24,7 @@ const reports = [
   ['budget-vs-actual', '預算 vs 實際'],
   ['profit-loss', '損益表'],
   ['flow', '流量'],
+  ['projects', '專案分析'],
 ] as const;
 export function Reports({ ledger }: { ledger: Ledger }) {
   const route = useLocation().split('?')[0]!.split('/').at(-1)!;
@@ -51,7 +55,11 @@ export function Reports({ ledger }: { ledger: Ledger }) {
           ))}
         </nav>
       </EdgeScroll>
-      {kind === 'profit-loss' || kind === 'flow' ? (
+      {kind === 'projects' ? (
+        <Suspense fallback={<LoadingState />}>
+          <ProjectAnalysis key={ledger.id} ledger={ledger} />
+        </Suspense>
+      ) : kind === 'profit-loss' || kind === 'flow' ? (
         <Suspense fallback={<LoadingState label="報表載入中" />}>
           {kind === 'profit-loss' ? (
             <ProfitLoss key={ledger.id} ledger={ledger} />

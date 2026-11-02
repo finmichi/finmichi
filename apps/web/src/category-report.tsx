@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { ProjectFilter } from './project-filter';
 import { LoadingState, ErrorState } from './design/feedback';
 import { useLocation, navigate } from './design/location';
 import {
@@ -92,6 +93,19 @@ export function CategoryStatistics({ ledger }: { ledger: Ledger }) {
         }}
       >
         <div className="report-toolbar">
+          <ProjectFilter
+            ledger={ledger.id}
+            label="分類專案"
+            value={draft.project_id}
+            onChange={(project_id) =>
+              setDraft((old) => {
+                const next = { ...old };
+                if (project_id) next.project_id = project_id;
+                else delete next.project_id;
+                return next;
+              })
+            }
+          />
           <TextInput
             type="date"
             label="分類起始日期"

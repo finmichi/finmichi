@@ -26,6 +26,7 @@ export const reportRoutes = [
   ['/reports/budget-vs-actual', '預算 vs 實際'],
   ['/reports/profit-loss', '損益表'],
   ['/reports/flow', '流量'],
+  ['/reports/projects', '專案分析'],
 ] as const;
 export const routeTitle = (path: string) =>
   /^\/investments(?:\/[0-9a-f-]{36})?$/.test(path)

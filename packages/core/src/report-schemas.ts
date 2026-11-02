@@ -68,6 +68,7 @@ export const incomeReportSchema = z
     date_from: dateSchema,
     date_to: dateSchema,
     grain: z.enum(['day', 'month', 'quarter', 'year']),
+    project_id: z.uuid().optional(),
   })
   .refine((q) => q.date_from <= q.date_to);
 export interface IncomeValues {
@@ -98,6 +99,7 @@ export const categoryReportSchema = z
     date_from: dateSchema,
     date_to: dateSchema,
     kind: z.enum(['income', 'expense']),
+    project_id: z.uuid().optional(),
     non_operating: z.enum(['all', 'operating', 'non_operating']).default('all'),
     fixed: z.enum(['all', 'fixed', 'variable']).default('all'),
   })
@@ -201,7 +203,12 @@ export const profitLossSchema = z
         : q.date_from.slice(4);
     return q.date_to < String(year).padStart(4, '0') + suffix;
   });
-export const netWorthFlowSchema = incomeReportSchema.safeExtend(reportDates);
+export const netWorthFlowSchema = z
+  .strictObject({
+    ...reportDates,
+    grain: z.enum(['day', 'month', 'quarter', 'year']),
+  })
+  .refine(orderedDates);
 export const accountLedgerSchema = z
   .strictObject({
     ...reportDates,
@@ -296,4 +303,47 @@ export interface AccountLedgerReport extends ReportMeta {
   carry: { currency: string; original_balance: string; book_balance: string }[];
   items: AccountLedgerEntry[];
   next_cursor: string | null;
+}
+
+export const projectReportSchema = z
+  .strictObject({
+    date_from: reportDateSchema,
+    date_to: reportDateSchema,
+    include_archived: z.enum(['true', 'false']).default('false'),
+  })
+  .refine(orderedDates);
+export interface ProjectReportItem {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  kind: 'income' | 'expense';
+  own_amount: string;
+  rollup_amount: string;
+}
+export interface ProjectReportRow {
+  id: string;
+  name: string;
+  archived: boolean;
+  income: string;
+  expense: string;
+  net: string;
+  transaction_count: number;
+  first_on: string | null;
+  last_on: string | null;
+  days: number;
+  daily_average_expense: string | null;
+  items: ProjectReportItem[];
+  currencies: {
+    currency: string;
+    original_expense: string;
+    base_expense: string;
+  }[];
+  months: { month: string; income: string; expense: string; net: string }[];
+}
+export interface ProjectReport extends ReportMeta {
+  report: 'projects';
+  date_from: string;
+  date_to: string;
+  include_archived: boolean;
+  projects: ProjectReportRow[];
 }
