@@ -4,7 +4,7 @@
 
 ## 1. 前置與權限（D2）
 
-使用者準備 Docker Compose v2、Container Manager、足夠磁碟與已核准的三個 private image。`NAS_ROOT`、`BACKUP_DIR` 是 NAS 上的絕對路徑，填入使用者選定目錄；以下尖括號都是占位值。部署不需要 private repo checkout 或 git 認證。先從 GitHub 已登入的瀏覽器下載核准版本 Release 的 `finmichi-deploy-<tag>.tar.gz` 與同名 `.tar.gz.sha256` 兩個 asset，傳到 NAS 的暫存下載目錄；兩者都是 GitHub Release asset，三個 container image 則在 GHCR。關閉 shell tracing（`set +x`）。不要從 dev 複製 dev secrets。
+使用者準備 Docker Compose v2、Container Manager、足夠磁碟與已核准的三個 image（package 可為 private 或 public）。`NAS_ROOT`、`BACKUP_DIR` 是 NAS 上的絕對路徑，填入使用者選定目錄；以下尖括號都是占位值。部署不需要 repo checkout 或 git 認證。先從瀏覽器下載核准版本 Release 的 `finmichi-deploy-<tag>.tar.gz` 與同名 `.tar.gz.sha256` 兩個 asset，傳到 NAS 的暫存下載目錄；兩者都是 GitHub Release asset，三個 container image 則在 GHCR。關閉 shell tracing（`set +x`）。不要從 dev 複製 dev secrets。
 
 ```sh
 export NAS_ROOT='<NAS_PROJECT_DIRECTORY>'
@@ -14,7 +14,7 @@ export PATH=/usr/local/bin:$PATH
 export BUNDLE_DOWNLOAD_DIRECTORY='<NAS_DOWNLOAD_DIRECTORY>'
 BUNDLE="finmichi-deploy-$IMAGE_TAG.tar.gz"
 cd "$BUNDLE_DOWNLOAD_DIRECTORY"
-# 不通過就停止，不可解壓或啟動；重新從核准的 private Release 取得兩個 asset。
+# 不通過就停止，不可解壓或啟動；重新從核准的 Release 取得兩個 asset。
 sha256sum -c "$BUNDLE.sha256" || exit 1
 mkdir -p "$NAS_ROOT/deploy"
 tar -xzf "$BUNDLE" -C "$NAS_ROOT/deploy"
@@ -158,7 +158,7 @@ D4 核准後設 MARKET_DATA_ENABLED=true，`up -d --force-recreate worker`；停
 | worker unhealthy    | DB 可連線、migration、健康檔與退避 log；市場抓取先關閉再縮小問題                                                 |
 | 備份／演練失敗      | 磁碟、容器、mode/owner、lock、既有 drill DB；不能把 .tmp 當備份，也不能忽略非 0                                  |
 
-Release workflow 的 workflow_dispatch 永遠是 dry-run：三個 amd64 image 各自 build 與 Trivy blocking/full，同時產出只含 allowlist 部署檔（根目錄 GUI、ssh/ 為 SSH）的 deploy bundle 與 SHA-256 CI artifact，沒有 registry login/push，也不建立 GitHub Release。只有核准的 v* tag 可進 publish job；必須在 main 歷史上。所有 blocking 與 bundle 建置成功才下載原掃描 image 發布，三 digest 與 bundle SHA-256 寫到 summary 與 release notes，且逐一確認 private；bundle 及 `.sha256` 附在同 tag 的 GitHub Release。D0 不建立 tag。
+Release workflow 的 workflow_dispatch 永遠是 dry-run：三個 amd64 image 各自 build 與 Trivy blocking/full，同時產出只含 allowlist 部署檔（根目錄 GUI、ssh/ 為 SSH）的 deploy bundle 與 SHA-256 CI artifact，沒有 registry login/push，也不建立 GitHub Release。只有核准的 v* tag 可進 publish job；必須在 main 歷史上。所有 blocking 與 bundle 建置成功才下載原掃描 image 發布，三 digest 與 bundle SHA-256 寫到 summary 與 release notes，且逐一確認 package 可見性為 private 或 public，記錄實際值；bundle 及 `.sha256` 附在同 tag 的 GitHub Release。公開 repo 的 Release 附件也會公開，匯入前務必核對 SHA-256。D0 不建立 tag。
 
 D0 的合成 NAS smoke（見 scripts/nas-smoke.mjs）使用本機同版 image、臨時 secrets、隔離專案；不讀正式資料。重啟驗收必須使用獨立 Docker daemon，不得重啟共享 dev daemon。其餘 unit/DB/UI/MCP 回歸沿用 CI。
 

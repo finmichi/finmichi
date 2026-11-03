@@ -162,14 +162,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Require existing packages to be private
+      - name: Require supported package visibility
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for package in finmichi finmichi-worker finmichi-postgres; do
             if gh api "orgs/finmichi/packages/container/$package" > package.json 2> package-error.txt; then
-              test "$(jq -r .visibility package.json)" = private
+              visibility=$(jq -r .visibility package.json)
+              case "$visibility" in
+                private|public) ;;
+                *) echo "Unsupported package visibility: $package ($visibility)" >&2; exit 1 ;;
+              esac
             elif ! grep -q 'HTTP 404' package-error.txt; then
               cat package-error.txt
               exit 1
@@ -193,19 +197,28 @@ jobs:
             sh scripts/export-image-asset.sh "$package" "$RELEASE_TAG" offline-assets
             asset="offline-assets/finmichi-image-$package-$RELEASE_TAG.tar"
             (cd offline-assets && sha256sum -c "$(basename "$asset").sha256")
-            private=false
+            visibility=''
             for _attempt in 1 2 3; do
-              if [ "$(gh api orgs/finmichi/packages/container/$package --jq .visibility)" = private ]; then private=true; break; fi
+              if gh api "orgs/finmichi/packages/container/$package" > package.json 2> package-error.txt; then
+                visibility=$(jq -r .visibility package.json)
+                case "$visibility" in
+                  private|public) break ;;
+                  *) echo "Unsupported package visibility: $package ($visibility)" >&2; exit 1 ;;
+                esac
+              elif ! grep -q 'HTTP 404' package-error.txt; then
+                cat package-error.txt
+                exit 1
+              fi
               sleep 5
             done
-            test "$private" = true
+            test -n "$visibility"
             digest=$(docker image inspect "$ref" --format '{{range .RepoDigests}}{{println .}}{{end}}' | grep "^ghcr.io/finmichi/$package@sha256:" | head -1)
             test -n "$digest"
-            printf -- "- \`%s\` (linux/amd64, private): \`%s\`\n" "$ref" "$digest" >> release-images.md
+            printf -- "- \`%s\` (linux/amd64, %s): \`%s\`\n" "$ref" "$visibility" "$digest" >> release-images.md
             printf -- "  - tar: \`%s\`; SHA-256: \`%s\`; image ID (config digest): \`%s\`\n" "$(basename "$asset")" "$(jq -r .sha256 "$asset.json")" "$(jq -r .image_id "$asset.json")" >> release-images.md
           done
           {
-            printf '\n# Deploy bundle\n\nDownload tar.gz or zip and its checksum. The Container Manager GUI guide is README.md (SSH alternative under ssh/). Both archives contain identical files; per-file hashes follow. Image tar files are private Release assets for offline import; verify their SHA-256 before importing. Image ID means config digest, not registry manifest digest.\n\n```text\n'
+            printf '\n# Deploy bundle\n\nDownload tar.gz or zip and its checksum. The Container Manager GUI guide is README.md (SSH alternative under ssh/). Both archives contain identical files; per-file hashes follow. Image tar files are Release assets for offline import and are public with this public repository; verify their SHA-256 before importing. Image ID means config digest, not registry manifest digest.\n\n```text\n'
             cat deploy-bundle/*.sha256
             printf '```\n'
           } >> release-images.md
