@@ -2,6 +2,7 @@
 // Synthetic localhost audit acceptance only; no real financial data.
 import { createServer } from 'node:http';
 import { once } from 'node:events';
+import { URLSearchParams } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
@@ -93,14 +94,23 @@ try {
   page.setDefaultTimeout(15000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  const auditReply = (cursor) =>
+  const canonical = (value) => {
+    const params = new URLSearchParams(value);
+    params.sort();
+    return params.toString();
+  };
+  const expectedQuery = (cursor, filters = {}) =>
+    canonical({ limit: '25', ...filters, ...(cursor ? { cursor } : {}) });
+  // Admin's counters also load this endpoint, including a filtered import page.
+  const auditReply = (cursor, filters = {}) =>
     page.waitForResponse((reply) => {
       const url = new URL(reply.url());
       return (
         url.origin === 'https://localhost:18444' &&
         url.pathname === '/api/audit-logs' &&
         reply.request().method() === 'GET' &&
-        url.searchParams.get('cursor') === cursor
+        url.searchParams.get('cursor') === cursor &&
+        canonical(url.searchParams) === expectedQuery(cursor, filters)
       );
     });
   const queryButton = page.getByRole('button', {
@@ -123,13 +133,19 @@ try {
   await page.getByText('已載入 25 筆操作紀錄', { exact: true }).waitFor();
   await ready();
   const observations = [];
-  const recordPage = async (reply, expectedCursor) => {
+  const recordPage = async (reply, expectedCursor, filters = {}) => {
     await reply.finished();
     assert.equal(reply.status(), 200);
-    const cursor = new URL(reply.url()).searchParams.get('cursor');
+    const url = new URL(reply.url());
+    const cursor = url.searchParams.get('cursor');
+    assert.equal(
+      canonical(url.searchParams),
+      expectedQuery(expectedCursor, filters),
+    );
     assert.equal(cursor, expectedCursor);
     const body = await reply.json();
     const observation = {
+      params: Object.fromEntries(url.searchParams),
       cursor,
       count: body.items.length,
       ids: body.items.map((row) => row.id),
@@ -143,13 +159,13 @@ try {
     );
     return body;
   };
-  const query = async () => {
+  const query = async (filters = {}) => {
     await ready();
-    const response = auditReply(null);
+    const response = auditReply(null, filters);
     await page
       .getByRole('button', { name: '查詢操作紀錄', exact: true })
       .click();
-    const body = await recordPage(await response, null);
+    const body = await recordPage(await response, null, filters);
     await ready();
     return body;
   };
@@ -181,17 +197,17 @@ try {
   await page
     .getByRole('option', { name: '帳本：修改／封存', exact: true })
     .click();
-  let p = await query();
+  let p = await query({ action: 'ledger.update' });
   assert.ok(p.items.every((r) => r.action === 'ledger.update'));
   assert.equal(p.items.length, 25);
   await page.getByRole('textbox', { name: '操作結果', exact: true }).click();
   await page.getByRole('option', { name: '失敗', exact: true }).click();
-  p = await query();
+  p = await query({ action: 'ledger.update', outcome: 'error' });
   assert.equal(p.items.length, 0);
   await page.getByText('沒有符合條件的操作紀錄。', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: '操作動作', exact: true }).click();
   await page.getByRole('option', { name: '帳本：新增', exact: true }).click();
-  p = await query();
+  p = await query({ action: 'ledger.create', outcome: 'error' });
   assert.equal(p.items.length, 1);
   assert.equal(p.items[0].outcome, 'error');
   await page.screenshot({
@@ -201,7 +217,10 @@ try {
   await page
     .getByLabel('操作起始時間', { exact: true })
     .fill('2031-01-01T00:00');
-  p = await query();
+  const from = await page
+    .getByLabel('操作起始時間', { exact: true })
+    .evaluate((input) => new Date(input.value).toISOString());
+  p = await query({ action: 'ledger.create', outcome: 'error', from });
   assert.equal(p.items.length, 0);
   assert.equal(
     await page.evaluate(
