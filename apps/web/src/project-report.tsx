@@ -17,6 +17,7 @@ import type {
 } from '@finmichi/core/report-schemas';
 import { useLocation, navigate } from './design/location';
 import {
+  projectAnalysisUrl,
   projectFiltersFromLocation,
   projectFiltersUrl,
 } from './design/report-state';
@@ -29,17 +30,40 @@ import { ReportTree, todayTaipei } from './report-common';
 import { projectReportText as t } from './project-report-messages';
 const ProjectCharts = lazy(() => import('./project-charts'));
 export function ProjectAnalysis({ ledger }: { ledger: Ledger }) {
-  const location = useLocation(),
-    applied = projectFiltersFromLocation(location, todayTaipei());
+  const location = useLocation();
+  const [bounds, setBounds] = useState<{
+    ledger: string;
+    project: string;
+    first_on: string | null;
+    last_on: string | null;
+  } | null>(null);
+  const initial = projectFiltersFromLocation(location, todayTaipei());
+  const applied = projectFiltersFromLocation(
+    location,
+    todayTaipei(),
+    bounds?.ledger === ledger.id && bounds.project === initial.project
+      ? bounds
+      : undefined,
+  );
   const [draft, setDraft] = useState(applied);
   useEffect(
-    () => setDraft(projectFiltersFromLocation(location, todayTaipei())),
-    [location],
+    () => setDraft(applied),
+    [location, applied.date_from, applied.date_to],
   );
   const { project, ...apiFilters } = applied;
   const result = useReport<ProjectReport>(
     `/api/ledgers/${ledger.id}/reports/projects?${new URLSearchParams(apiFilters)}`,
   );
+  useEffect(() => {
+    if (!result.data || result.data.ledger_id !== ledger.id) return;
+    const row = result.data.projects.find((p) => p.id === project);
+    setBounds({
+      ledger: ledger.id,
+      project,
+      first_on: row?.available_first_on ?? null,
+      last_on: row?.available_last_on ?? null,
+    });
+  }, [result.data, ledger.id, project]);
   const mobile = useMediaQuery('(max-width:899px)');
   const money = (v: string | null) => formatMoney(v, ledger.base_currency);
   const selected = result.data?.projects.find((p) => p.id === project);
@@ -48,9 +72,7 @@ export function ProjectAnalysis({ ledger }: { ledger: Ledger }) {
       <Button
         size="compact-sm"
         aria-label={`${t.analysis} ${row.name}`}
-        onClick={() =>
-          navigate(projectFiltersUrl({ ...applied, project: row.id }))
-        }
+        onClick={() => navigate(projectAnalysisUrl(location, row.id))}
       >
         {t.analysis}
       </Button>
@@ -131,6 +153,21 @@ export function ProjectAnalysis({ ledger }: { ledger: Ledger }) {
             }
           />
           <Button type="submit">{t.generate}</Button>
+          <Button
+            variant="subtle"
+            disabled={!result.data}
+            onClick={() =>
+              navigate(
+                projectFiltersUrl({
+                  ...applied,
+                  date_from: result.data?.first_transaction_on ?? todayTaipei(),
+                  date_to: todayTaipei(),
+                }),
+              )
+            }
+          >
+            {t.allPeriods}
+          </Button>
         </div>
       </form>
       <details>

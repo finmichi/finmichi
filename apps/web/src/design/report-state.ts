@@ -192,12 +192,19 @@ export function forecastFiltersFromLocation(location: string) {
   };
 }
 
-export function projectFiltersFromLocation(location: string, today: string) {
+export function projectFiltersFromLocation(
+  location: string,
+  today: string,
+  bounds?: { first_on: string | null; last_on: string | null },
+) {
   const p = read(location),
     id = p.get('project');
   return {
-    date_from: date(p.get('date_from'), today.slice(0, 4) + '-01-01'),
-    date_to: date(p.get('date_to'), today),
+    date_from: date(
+      p.get('date_from'),
+      bounds?.first_on ?? today.slice(0, 4) + '-01-01',
+    ),
+    date_to: date(p.get('date_to'), bounds?.last_on ?? today),
     include_archived: choose(
       p.get('include_archived'),
       ['true', 'false'],
@@ -212,4 +219,16 @@ export function projectFiltersUrl(filters: Record<string, string>) {
   for (const k of ['date_from', 'date_to', 'include_archived', 'project'])
     if (filters[k]) p.set(k, filters[k]!);
   return '/reports/projects?' + p;
+}
+
+// Do not turn implicit list defaults into explicit dates on the analysis link.
+export function projectAnalysisUrl(location: string, project: string) {
+  const p = read(location);
+  const filters: Record<string, string> = { project };
+  for (const key of ['date_from', 'date_to']) {
+    const value = p.get(key);
+    if (value && validDate(value)) filters[key] = value;
+  }
+  if (p.get('include_archived') === 'true') filters.include_archived = 'true';
+  return projectFiltersUrl(filters);
 }

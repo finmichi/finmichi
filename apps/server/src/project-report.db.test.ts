@@ -12,7 +12,10 @@ import type {
   CategoryReport,
 } from '@finmichi/core/report-schemas';
 import { fixture } from '../test/catalog-fixture.js';
-import { seedProjects } from '../../../scripts/project-report-fixture.mjs';
+import {
+  seedPastProject,
+  seedProjects,
+} from '../../../scripts/project-report-fixture.mjs';
 let f: Awaited<ReturnType<typeof fixture>>,
   ids: Awaited<ReturnType<typeof seedProjects>>;
 const dates = { date_from: '2026-09-01', date_to: '2026-10-31' };
@@ -230,4 +233,55 @@ it('rounds the exact rational once, including huge near-half values and negative
   const [empty] =
     await f.db`SELECT report_money_average(1,0) a,report_money_average(null,2) b`;
   expect(empty).toEqual({ a: null, b: null });
+});
+
+it('exposes owner-scoped whole-history dates without changing period amounts or SQL', async () => {
+  const ledger = await ledgerService(f.db).create(f.actor, {
+    name: '合成往年日期範圍',
+  });
+  const seed = await seedProjects(f.db, f.actor, ledger.id);
+  const past = await seedPastProject(f.db, f.actor, ledger.id, seed.ids, 2025);
+  const get = async (from: string, to: string) => {
+    const response = await f.app.inject({
+      url: `/api/ledgers/${ledger.id}/reports/projects?date_from=${from}&date_to=${to}`,
+      headers: f.headers,
+    });
+    expect(response.statusCode).toBe(200);
+    return response.json<ProjectReport>();
+  };
+  const current = await get('2026-01-01', '2026-11-03');
+  expect(current.first_transaction_on).toBe('2024-02-01');
+  expect(current.projects.find((p) => p.id === past)).toMatchObject({
+    first_on: null,
+    last_on: null,
+    expense: '0.00',
+    transaction_count: 0,
+    available_first_on: '2025-04-10',
+    available_last_on: '2025-04-12',
+  });
+  const historical = await get('2025-04-10', '2025-04-12');
+  expect(historical.projects.find((p) => p.id === past)).toMatchObject({
+    expense: '800.00',
+    transaction_count: 2,
+  });
+  const all = await get(current.first_transaction_on!, '2026-11-03');
+  expect(all.projects.reduce((n, p) => n + p.transaction_count, 0)).toBe(8);
+  expect(all.projects.find((p) => p.id === past)?.expense).toBe('800.00');
+  const [direct] =
+    await f.db`SELECT report_projects(${f.actor},${ledger.id},'2025-04-10','2025-04-12',false) r`;
+  expect(
+    historical.projects.map((p) =>
+      Object.fromEntries(
+        Object.entries(p).filter(([key]) => !key.startsWith('available_')),
+      ),
+    ),
+  ).toEqual(direct!.r.projects);
+  expect(
+    (
+      await f.app.inject({
+        url: `/api/ledgers/${ledger.id}/reports/projects?date_from=2025-01-01&date_to=2026-11-03`,
+        headers: f.otherHeaders,
+      })
+    ).statusCode,
+  ).toBe(404);
 });

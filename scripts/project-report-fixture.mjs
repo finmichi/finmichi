@@ -77,3 +77,29 @@ export async function seedProjects(db, actor, ledger) {
   await projects.update(actor, ledger, archived.id, { archived: true });
   return { ids, trip: trip.id, archived: archived.id, empty: empty.id };
 }
+
+// Synthetic prior-year travel plus an older, unassigned ledger transaction.
+export async function seedPastProject(db, actor, ledger, ids, year) {
+  const project = await namedRecordService(db, 'projects').create(
+    actor,
+    ledger,
+    {
+      name: '合成去年旅遊',
+    },
+  );
+  for (const [date, projectId, amount] of [
+    [`${year}-04-10`, project.id, '300'],
+    [`${year}-04-12`, project.id, '500'],
+    [`${year - 1}-02-01`, null, '20'],
+  ])
+    await transactionService(db).create(actor, ledger, {
+      occurred_on: date,
+      project_id: projectId,
+      memo: '自行產生的往年旅遊驗收',
+      entries: [
+        { item_id: ids.cash, amount: '-' + amount },
+        { item_id: ids.food, amount },
+      ],
+    });
+  return project.id;
+}
