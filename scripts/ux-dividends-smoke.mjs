@@ -236,11 +236,58 @@ try {
     .click();
   await settle();
   await go(path);
+  const sharePrefills = [];
+  const sharesReply = (exDate) =>
+    page.waitForResponse(async (reply) => {
+      const url = new URL(reply.url());
+      if (
+        url.origin !== origin ||
+        url.pathname !==
+          `/api/ledgers/${l.id}/securities/${s.id}/dividend-shares` ||
+        url.searchParams.get('ex_date') !== exDate ||
+        reply.request().method() !== 'GET'
+      )
+        return false;
+      await reply.finished();
+      return true;
+    });
+  const recordShares = async (pending, expected) => {
+    const reply = await pending;
+    const { shares } = await reply.json();
+    const observation = {
+      ex_date: new URL(reply.url()).searchParams.get('ex_date'),
+      status: reply.status(),
+      shares,
+    };
+    sharePrefills.push(observation);
+    console.log('Dividend share prefill', JSON.stringify(observation));
+    await writeFile(
+      output + '/share-prefills.json',
+      JSON.stringify(sharePrefills, null, 2),
+    );
+    assert.equal(reply.status(), 200);
+    assert.equal(shares, expected);
+  };
+  // Observe before opening: the intended security may already be the default.
+  const todayShares = sharesReply(day);
   await page.getByRole('button', { name: '新增股利', exact: true }).click();
   await pick('股利股票', '合成測試股票');
+  await recordShares(todayShares, '0');
+  const sharesField = page.getByLabel('參與股數', { exact: true });
+  assert.equal(await sharesField.inputValue(), '0');
+  // Keep the existing 15-second budget across the response and DOM update.
+  const deadline = Date.now() + 15000;
+  const tomorrowShares = sharesReply(tomorrow);
   await page.getByLabel('除權息日', { exact: true }).fill(tomorrow);
   await page.getByLabel('發放日', { exact: true }).fill(tomorrow);
-  await settle();
+  await recordShares(tomorrowShares, '75');
+  const remaining = deadline - Date.now();
+  assert.ok(remaining > 0, 'Dividend share prefill exceeded existing timeout');
+  await page.waitForFunction(
+    (input) => input.value === '75',
+    await sharesField.elementHandle(),
+    { timeout: remaining },
+  );
   assert.equal(
     await page.getByLabel('參與股數', { exact: true }).inputValue(),
     '75',
