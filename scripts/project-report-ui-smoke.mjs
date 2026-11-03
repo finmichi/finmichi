@@ -227,7 +227,13 @@ try {
             '&project_id=' +
             ids.trip,
         );
-        await page.getByRole('textbox', { name: label, exact: true }).waitFor();
+        // The select mounts before its independently fetched project options.
+        await page.waitForFunction(
+          (input) => input.value === '合成跨月旅遊',
+          await page
+            .getByRole('textbox', { name: label, exact: true })
+            .elementHandle(),
+        );
         assert.equal(
           await page
             .getByRole('textbox', { name: label, exact: true })

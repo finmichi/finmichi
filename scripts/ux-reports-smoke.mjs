@@ -297,8 +297,14 @@ try {
     await page.getByRole('option', { name: value, exact: true }).click();
   }
   const urlParams = () => new URL(page.url()).searchParams;
-  const assertField = async (label, value) =>
+  const assertField = async (label, value) => {
+    // History navigation updates the form in a React effect after the URL changes.
+    await page.waitForFunction(({ input, value }) => input.value === value, {
+      input: await field(label).elementHandle(),
+      value,
+    });
     assert.equal(await field(label).inputValue(), value, label);
+  };
   // Deep link → form → Enter/apply → canonical URL → reload/back/forward.
   await page.goto(
     'https://localhost:18444/reports/income-summary?date_from=2026-08-01&date_to=2026-10-31&grain=quarter&owner_id=ignored',

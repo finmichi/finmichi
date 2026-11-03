@@ -621,6 +621,11 @@ try {
     .locator('.query-totals')
     .getByText(/科目淨變動/)
     .waitFor();
+  // The signed summary is fetched separately from the transaction page.
+  await page
+    .locator('.query-totals')
+    .getByText('−NT$ 520.00', { exact: true })
+    .waitFor();
   assert.match(await page.locator('.query-totals').textContent(), /520/);
   assert.doesNotMatch(
     await page.locator('.query-totals').textContent(),

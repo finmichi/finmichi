@@ -2,7 +2,8 @@
 // Synthetic localhost audit acceptance only; no real financial data.
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdir } from 'node:fs/promises';
+import { URLSearchParams } from 'node:url';
+import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { connect, migrate } from '../packages/db/dist/index.js';
@@ -93,29 +94,96 @@ try {
   page.setDefaultTimeout(15000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  const canonical = (value) => {
+    const params = new URLSearchParams(value);
+    params.sort();
+    return params.toString();
+  };
+  const expectedQuery = (cursor, filters = {}) =>
+    canonical({ limit: '25', ...filters, ...(cursor ? { cursor } : {}) });
+  // Admin's counters also load this endpoint, including a filtered import page.
+  const auditReply = (cursor, filters = {}) =>
+    page.waitForResponse((reply) => {
+      const url = new URL(reply.url());
+      return (
+        url.origin === 'https://localhost:18444' &&
+        url.pathname === '/api/audit-logs' &&
+        reply.request().method() === 'GET' &&
+        url.searchParams.get('cursor') === cursor &&
+        canonical(url.searchParams) === expectedQuery(cursor, filters)
+      );
+    });
+  const queryButton = page.getByRole('button', {
+    name: '查詢操作紀錄',
+    exact: true,
+  });
+  const ready = async () => {
+    await page.waitForFunction(
+      (button) => !button.disabled && !button.hasAttribute('data-loading'),
+      await queryButton.elementHandle(),
+    );
+  };
+  // Drain the mount load and its React commit before starting an explicit query.
+  const mounted = auditReply(null);
   await page.goto('https://localhost:18444/admin/audit');
   await page.getByRole('heading', { name: '稽核紀錄', exact: true }).waitFor();
-  const query = async () => {
-    const response = page.waitForResponse((r) =>
-      r.url().includes('/api/audit-logs?'),
+  const mountReply = await mounted;
+  await mountReply.finished();
+  assert.equal(mountReply.status(), 200);
+  await page.getByText('已載入 25 筆操作紀錄', { exact: true }).waitFor();
+  await ready();
+  const observations = [];
+  const recordPage = async (reply, expectedCursor, filters = {}) => {
+    await reply.finished();
+    assert.equal(reply.status(), 200);
+    const url = new URL(reply.url());
+    const cursor = url.searchParams.get('cursor');
+    assert.equal(
+      canonical(url.searchParams),
+      expectedQuery(expectedCursor, filters),
     );
+    assert.equal(cursor, expectedCursor);
+    const body = await reply.json();
+    const observation = {
+      params: Object.fromEntries(url.searchParams),
+      cursor,
+      count: body.items.length,
+      ids: body.items.map((row) => row.id),
+      next_cursor: body.next_cursor,
+    };
+    observations.push(observation);
+    console.log('Audit pagination', JSON.stringify(observation));
+    await writeFile(
+      output + '/audit-pagination.json',
+      JSON.stringify(observations, null, 2),
+    );
+    return body;
+  };
+  const query = async (filters = {}) => {
+    await ready();
+    const response = auditReply(null, filters);
     await page
       .getByRole('button', { name: '查詢操作紀錄', exact: true })
       .click();
-    const r = await response;
-    assert.equal(r.status(), 200);
-    return r.json();
+    const body = await recordPage(await response, null, filters);
+    await ready();
+    return body;
   };
   const first = await query();
   assert.equal(first.items.length, 25);
   assert.ok(first.next_cursor);
-  const next = page.waitForResponse((r) =>
-    r.url().includes('/api/audit-logs?'),
-  );
+  const next = auditReply(first.next_cursor);
   await page
     .getByRole('button', { name: '載入更多操作紀錄', exact: true })
     .click();
-  const second = await (await next).json();
+  const second = await recordPage(await next, first.next_cursor);
+  assert.equal(second.items.length, 10);
+  const firstIds = new Set(first.items.map((row) => row.id));
+  assert.deepEqual(
+    second.items.filter((row) => firstIds.has(row.id)),
+    [],
+    'Cursor page must contain ten different records; duplicates indicate a product pagination defect',
+  );
   assert.equal(
     new Set([...first.items, ...second.items].map((r) => r.id)).size,
     35,
@@ -129,17 +197,17 @@ try {
   await page
     .getByRole('option', { name: '帳本：修改／封存', exact: true })
     .click();
-  let p = await query();
+  let p = await query({ action: 'ledger.update' });
   assert.ok(p.items.every((r) => r.action === 'ledger.update'));
   assert.equal(p.items.length, 25);
   await page.getByRole('textbox', { name: '操作結果', exact: true }).click();
   await page.getByRole('option', { name: '失敗', exact: true }).click();
-  p = await query();
+  p = await query({ action: 'ledger.update', outcome: 'error' });
   assert.equal(p.items.length, 0);
   await page.getByText('沒有符合條件的操作紀錄。', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: '操作動作', exact: true }).click();
   await page.getByRole('option', { name: '帳本：新增', exact: true }).click();
-  p = await query();
+  p = await query({ action: 'ledger.create', outcome: 'error' });
   assert.equal(p.items.length, 1);
   assert.equal(p.items[0].outcome, 'error');
   await page.screenshot({
@@ -149,7 +217,10 @@ try {
   await page
     .getByLabel('操作起始時間', { exact: true })
     .fill('2031-01-01T00:00');
-  p = await query();
+  const from = await page
+    .getByLabel('操作起始時間', { exact: true })
+    .evaluate((input) => new Date(input.value).toISOString());
+  p = await query({ action: 'ledger.create', outcome: 'error', from });
   assert.equal(p.items.length, 0);
   assert.equal(
     await page.evaluate(
