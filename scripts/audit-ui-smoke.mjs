@@ -2,7 +2,7 @@
 // Synthetic localhost audit acceptance only; no real financial data.
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { connect, migrate } from '../packages/db/dist/index.js';
@@ -93,29 +93,81 @@ try {
   page.setDefaultTimeout(15000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  const auditReply = (cursor) =>
+    page.waitForResponse((reply) => {
+      const url = new URL(reply.url());
+      return (
+        url.origin === 'https://localhost:18444' &&
+        url.pathname === '/api/audit-logs' &&
+        reply.request().method() === 'GET' &&
+        url.searchParams.get('cursor') === cursor
+      );
+    });
+  const queryButton = page.getByRole('button', {
+    name: '查詢操作紀錄',
+    exact: true,
+  });
+  const ready = async () => {
+    await page.waitForFunction(
+      (button) => !button.disabled && !button.hasAttribute('data-loading'),
+      await queryButton.elementHandle(),
+    );
+  };
+  // Drain the mount load and its React commit before starting an explicit query.
+  const mounted = auditReply(null);
   await page.goto('https://localhost:18444/admin/audit');
   await page.getByRole('heading', { name: '稽核紀錄', exact: true }).waitFor();
-  const query = async () => {
-    const response = page.waitForResponse((r) =>
-      r.url().includes('/api/audit-logs?'),
+  const mountReply = await mounted;
+  await mountReply.finished();
+  assert.equal(mountReply.status(), 200);
+  await page.getByText('已載入 25 筆操作紀錄', { exact: true }).waitFor();
+  await ready();
+  const observations = [];
+  const recordPage = async (reply, expectedCursor) => {
+    await reply.finished();
+    assert.equal(reply.status(), 200);
+    const cursor = new URL(reply.url()).searchParams.get('cursor');
+    assert.equal(cursor, expectedCursor);
+    const body = await reply.json();
+    const observation = {
+      cursor,
+      count: body.items.length,
+      ids: body.items.map((row) => row.id),
+      next_cursor: body.next_cursor,
+    };
+    observations.push(observation);
+    console.log('Audit pagination', JSON.stringify(observation));
+    await writeFile(
+      output + '/audit-pagination.json',
+      JSON.stringify(observations, null, 2),
     );
+    return body;
+  };
+  const query = async () => {
+    await ready();
+    const response = auditReply(null);
     await page
       .getByRole('button', { name: '查詢操作紀錄', exact: true })
       .click();
-    const r = await response;
-    assert.equal(r.status(), 200);
-    return r.json();
+    const body = await recordPage(await response, null);
+    await ready();
+    return body;
   };
   const first = await query();
   assert.equal(first.items.length, 25);
   assert.ok(first.next_cursor);
-  const next = page.waitForResponse((r) =>
-    r.url().includes('/api/audit-logs?'),
-  );
+  const next = auditReply(first.next_cursor);
   await page
     .getByRole('button', { name: '載入更多操作紀錄', exact: true })
     .click();
-  const second = await (await next).json();
+  const second = await recordPage(await next, first.next_cursor);
+  assert.equal(second.items.length, 10);
+  const firstIds = new Set(first.items.map((row) => row.id));
+  assert.deepEqual(
+    second.items.filter((row) => firstIds.has(row.id)),
+    [],
+    'Cursor page must contain ten different records; duplicates indicate a product pagination defect',
+  );
   assert.equal(
     new Set([...first.items, ...second.items].map((r) => r.id)).size,
     35,

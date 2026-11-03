@@ -285,11 +285,18 @@ try {
   await page.getByLabel('交易日期').fill('2026-10-18');
   await field('USD → TWD 匯率').fill('32.5');
   await field('摘要').fill('合成 C 使用者參考');
-  let response = page.waitForResponse(
-    (r) =>
-      r.url().endsWith('/transactions/preview') &&
-      r.request().method() === 'POST',
-  );
+  // Automatic and manual previews share an endpoint; match this form revision.
+  const previewReply = (memo) =>
+    page.waitForResponse((reply) => {
+      const url = new URL(reply.url());
+      return (
+        url.origin === 'https://localhost:18444' &&
+        url.pathname === `/api/ledgers/${ledger.id}/transactions/preview` &&
+        reply.request().method() === 'POST' &&
+        reply.request().postDataJSON().memo === memo
+      );
+    });
+  let response = previewReply('合成 C 使用者參考');
   await page.getByRole('button', { name: '試算交易', exact: true }).click();
   let comparison = (await (await response).json()).fx_comparisons[0];
   assert.equal(comparison.reference_source, 'user_input');
@@ -320,11 +327,7 @@ try {
   );
   await form('合成美元資產 (USD)', '合成現金 (TWD)', '100', '4000');
   await field('摘要').fill('合成 C 當日參考');
-  response = page.waitForResponse(
-    (r) =>
-      r.url().endsWith('/transactions/preview') &&
-      r.request().method() === 'POST',
-  );
+  response = previewReply('合成 C 當日參考');
   await page.getByRole('button', { name: '試算交易', exact: true }).click();
   comparison = (await (await response).json()).fx_comparisons[0];
   assert.equal(comparison.reference_source, 'exchange_rates');
@@ -341,11 +344,7 @@ try {
   await page.getByLabel('交易日期').fill('2026-10-18');
   await field('USD → TWD 匯率').fill('32.5');
   await field('摘要').fill('合成 C 小幅偏差');
-  response = page.waitForResponse(
-    (r) =>
-      r.url().endsWith('/transactions/preview') &&
-      r.request().method() === 'POST',
-  );
+  response = previewReply('合成 C 小幅偏差');
   await page.getByRole('button', { name: '試算交易', exact: true }).click();
   const close = await (await response).json();
   assert.deepEqual(close.warnings, []);
@@ -364,11 +363,7 @@ try {
   await form('合成美元資產 (USD)', '合成現金 (TWD)', '100', '4000');
   await page.getByLabel('交易日期').fill('2026-10-18');
   await field('摘要').fill('合成 C 無參考');
-  response = page.waitForResponse(
-    (r) =>
-      r.url().endsWith('/transactions/preview') &&
-      r.request().method() === 'POST',
-  );
+  response = previewReply('合成 C 無參考');
   await page.getByRole('button', { name: '試算交易', exact: true }).click();
   const absent = await (await response).json();
   assert.deepEqual(absent.warnings, []);
