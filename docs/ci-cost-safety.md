@@ -31,7 +31,7 @@
 
 所有 workflow 預設 `contents: read`，所有 action 固定完整 commit SHA。PR 不執行 `pull_request_target`，只有同 repo 的環境識別掃描步驟讀取 `ENV_IDENTIFIER_PATTERNS`，fork 跳過該步驟；其他掃描仍執行，不保留 checkout credential，也沒有 image push／release 權限。快取中只有可重新建立的依賴／layer，不能存 secrets。
 
-Release 的 publish job 與每個 secret 步驟均限定 `push` 的 `refs/tags/v*`；fork PR 不可能進入。手動 Release 仍為 dry-run，不登入 registry、不發布 image。發布前沿用 main ancestor 檢查及 private package 檢查。不得為通過 fork 測試提供 secrets。
+Release 的 publish job 與每個 secret 步驟均限定 `push` 的 `refs/tags/v*`；fork PR 不可能進入。手動 Release 仍為 dry-run，不登入 registry、不發布 image。發布前沿用 main ancestor 檢查及 package 可見性檢查（只接受 private／public，並記錄實際值）。不得為通過 fork 測試提供 secrets。
 
 輸入的 PR metadata、檔名不會插入 shell；執行 UI 時只接受程式內 allowlist 的 suite 名稱。actionlint v1.7.12 從官方 release 下載並驗證固定 SHA-256。
 

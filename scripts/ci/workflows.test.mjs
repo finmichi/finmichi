@@ -153,3 +153,128 @@ test('weekly reports include worker and history; release blocking thresholds rem
   assert.match(release, /ignore-unfixed: true/);
   assert.match(release, /exit-code: '1'/);
 });
+
+function releaseStep(name) {
+  const step = release
+    .split(/\n {6}- /)
+    .find((part) => part.startsWith(`name: ${name}\n`));
+  assert.ok(step, name);
+  return step;
+}
+function shellBlock(step) {
+  return step.split('        run: |\n')[1].replace(/^ {10}/gm, '');
+}
+
+// Execute the workflow's real shell policy against synthetic API responses only.
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+function visibilityResult(
+  script,
+  { visibility, error = '', first404 = false },
+) {
+  const cwd = mkdtempSync(join(tmpdir(), 'release-visibility-'));
+  try {
+    return spawnSync(
+      'bash',
+      [
+        '-euo',
+        'pipefail',
+        '-c',
+        `calls=0
+        gh() {
+          calls=$((calls + 1))
+          if [ "$MOCK_FIRST_404" = true ] && [ "$calls" = 1 ]; then
+            echo 'HTTP 404' >&2; return 1
+          fi
+          if [ -n "$MOCK_ERROR" ]; then echo "$MOCK_ERROR" >&2; return 1; fi
+          printf '%s\\n' "$MOCK_JSON"
+        }
+        sleep() { :; }
+        package=finmichi
+        ${script}
+        printf '%s' "\${visibility:-missing}"
+        `,
+      ],
+      {
+        cwd,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          MOCK_JSON: JSON.stringify({ visibility }),
+          MOCK_ERROR: error,
+          MOCK_FIRST_404: String(first404),
+        },
+      },
+    );
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
+test('release pre/post checks allow only private/public, fail closed and retain 404 handling', () => {
+  const before = shellBlock(
+    releaseStep('Require supported package visibility'),
+  );
+  const publish = shellBlock(
+    releaseStep('Publish all scanned amd64 images with one tag'),
+  );
+  const after = publish.slice(
+    publish.indexOf("  visibility=''"),
+    publish.indexOf('  digest='),
+  );
+  assert.match(after, /for _attempt in 1 2 3/);
+  for (const script of [before, after]) {
+    for (const visibility of ['private', 'public']) {
+      const result = visibilityResult(script, { visibility });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, visibility);
+    }
+    for (const visibility of ['internal', '', 'PUBLIC', null, undefined]) {
+      const result = visibilityResult(script, { visibility });
+      assert.notEqual(result.status, 0, String(visibility));
+    }
+    for (const error of ['HTTP 403', 'HTTP 500', 'connection failed']) {
+      assert.notEqual(visibilityResult(script, { error }).status, 0, error);
+    }
+  }
+  // A not-yet-created package is allowed before the first push; after push it
+  // must become readable within the existing three-attempt propagation window.
+  assert.equal(visibilityResult(before, { error: 'HTTP 404' }).status, 0);
+  assert.notEqual(visibilityResult(after, { error: 'HTTP 404' }).status, 0);
+  const propagated = visibilityResult(after, {
+    visibility: 'public',
+    first404: true,
+  });
+  assert.equal(propagated.status, 0, propagated.stderr);
+  assert.equal(propagated.stdout, 'public');
+  assert.match(publish, /linux\/amd64, %s/);
+  assert.match(publish, /"\$ref" "\$visibility" "\$digest"/);
+  assert.doesNotMatch(publish, /private Release assets|linux\/amd64, private/);
+});
+
+test('release dispatch stays offline; login/push and write permissions are publish-only', () => {
+  const [buildJobs, publish] = release.split('\n  publish:\n');
+  assert.ok(publish);
+  assert.match(release, /push:\n {4}tags: \['v\*'\]\n {2}workflow_dispatch:/);
+  assert.doesNotMatch(buildJobs, /docker\/login-action|docker push|push: true/);
+  assert.doesNotMatch(buildJobs, /contents: write|packages: write/);
+  assert.match(publish, /contents: write\n {6}packages: write/);
+  assert.match(
+    publish,
+    /^ {4}if: github.event_name == 'push' && startsWith\(github.ref, 'refs\/tags\/v'\)/,
+  );
+  for (const step of buildJobs.split(/\n {6}- /)) {
+    if (!step.includes("if: github.event_name == 'workflow_dispatch'"))
+      continue;
+    assert.doesNotMatch(
+      step,
+      /docker\/login-action|docker push|gh release|secrets\./,
+    );
+  }
+  assert.match(
+    release,
+    /Image tar files are Release assets.*public repository; verify their SHA-256 before importing/,
+  );
+});
