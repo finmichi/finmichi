@@ -5,6 +5,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 const read = (name) => readFileSync(`.github/workflows/${name}.yaml`, 'utf8');
 const ci = read('ci'),
   release = read('release');
+assert.equal(
+  spawnSync('jq', ['--version'], { encoding: 'utf8' }).status,
+  0,
+  'jq is required for workflow shell contracts; install jq before running these tests',
+);
 test('all workflows default to read-only and every action is immutable', () => {
   for (const file of readdirSync('.github/workflows')) {
     const source = readFileSync(`.github/workflows/${file}`, 'utf8');
@@ -276,5 +281,78 @@ test('release dispatch stays offline; login/push and write permissions are publi
   assert.match(
     release,
     /Image tar files are Release assets.*public repository; verify their SHA-256 before importing/,
+  );
+});
+
+test('release installs a checksum-pinned Trivy archive before either scan', () => {
+  const step = releaseStep('Install pinned Trivy');
+  assert.match(step, /TRIVY_VERSION: '0\.76\.0'/);
+  assert.match(
+    step,
+    /TRIVY_SHA256: e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7/,
+  );
+  assert.match(
+    step,
+    /curl -fsSL --retry 3 --retry-delay 2 "https:\/\/github\.com\/aquasecurity\/trivy\/releases\/download\/v\$\{TRIVY_VERSION\}\/trivy_\$\{TRIVY_VERSION\}_Linux-64bit\.tar\.gz"/,
+  );
+  assert.match(step, /sha256sum -c - \|\| exit 1/);
+  assert.ok(step.indexOf('sha256sum -c') < step.indexOf('tar -xzf'));
+  assert.match(step, /echo "\$RUNNER_TEMP\/trivy-bin" >> "\$GITHUB_PATH"/);
+  assert.match(step, /trivy" --version/);
+  assert.match(step, /= "Version: \$TRIVY_VERSION"/);
+  assert.doesNotMatch(release, /get\.trivy\.dev/);
+  assert.ok(
+    release.indexOf('Install pinned Trivy') <
+      release.indexOf('Blocking fixable HIGH and CRITICAL'),
+  );
+});
+
+test('both scans skip setup; scan policy matches main a394559 without threshold changes', () => {
+  const common = {
+    'image-ref': '${{ matrix.package }}:release-scan',
+    format: 'json',
+  };
+  for (const [name, expected] of [
+    [
+      'Blocking fixable HIGH and CRITICAL',
+      {
+        ...common,
+        output: 'trivy-blocking.json',
+        'exit-code': '1',
+        severity: 'HIGH,CRITICAL',
+        'ignore-unfixed': 'true',
+      },
+    ],
+    [
+      'Full non-blocking report',
+      {
+        ...common,
+        output: 'trivy-full.json',
+        'exit-code': '0',
+        severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL',
+        'ignore-unfixed': 'false',
+      },
+    ],
+  ]) {
+    const step = releaseStep(name);
+    assert.match(
+      step,
+      /uses: aquasecurity\/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0/,
+    );
+    const inputs = Object.fromEntries(
+      [...step.matchAll(/^ {10}([\w-]+): (.+)$/gm)].map(([, key, value]) => [
+        key,
+        value.replace(/^'(.*)'$/, '$1'),
+      ]),
+    );
+    assert.equal(inputs['skip-setup-trivy'], 'true');
+    assert.equal(inputs.version, 'v0.76.0');
+    delete inputs['skip-setup-trivy'];
+    delete inputs.version;
+    assert.deepEqual(inputs, expected, name);
+  }
+  assert.equal(
+    (release.match(/uses: aquasecurity\/trivy-action@/g) ?? []).length,
+    2,
   );
 });
